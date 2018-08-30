@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseOrNot, wrapInObject, wrapJSONStringInObject, findSchemaAndTable } = require('./utils');
+const { parseOrNot, findSchemaAndTable } = require('./utils');
 
 describe('services/utils', () => {
   const testObj = { foo: true, bar: false },
@@ -29,30 +29,6 @@ describe('services/utils', () => {
 
       expect(schema).toBe(expectedSchema);
       expect(table).toBe(expectedTable);
-    });
-  });
-
-  describe.each([
-    ['components', 'site.com/_components/cmpt/instances/foo', testObj, testObj],
-    ['pages', 'site.com/_pages/foo', testObj, testObj],
-    ['lists', 'site.com/_lists/foo', testObj, { _value: testObj }],
-    ['uris', 'site.com/_uris/foo', testObj, testObj]
-  ])
-  ('wrapInObject', (type, key, value, result) => {
-    test(`wraps ${type} correctly`, () => {
-      expect(wrapInObject(key, value)).toStrictEqual(result);
-    });
-  });
-
-  describe.each([
-    ['components', 'site.com/_components/cmpt/instances/foo', stringifiedTestObj, stringifiedTestObj],
-    ['pages', 'site.com/_pages/foo', stringifiedTestObj, stringifiedTestObj],
-    ['lists', 'site.com/_lists/foo', stringifiedTestObj, `{"_value":"${stringifiedTestObj}"}`],
-    ['uris', 'site.com/_uris/foo', stringifiedTestObj, stringifiedTestObj]
-  ])
-  ('wrapJSONStringInObject', (type, key, value, result) => {
-    test(`wraps ${type} correctly`, () => {
-      expect(wrapJSONStringInObject(key, value)).toEqual(result);
     });
   });
 });

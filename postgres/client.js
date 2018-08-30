@@ -2,8 +2,8 @@
 
 const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB } = require('../services/constants'),
   { notFoundError } = require('../services/errors'),
-  { parseOrNot, wrapInObject } = require('../services/utils'),
-  { findSchemaAndTable, wrapJSONStringInObject } = require('../services/utils'),
+  { parseOrNot } = require('../services/utils'),
+  { findSchemaAndTable } = require('../services/utils'),
   knexLib = require('knex'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
@@ -103,7 +103,7 @@ function get(key) {
 function put(key, value) {
   const { schema, table } = findSchemaAndTable(key);
 
-  return onConflictPut(key, wrapInObject(key,parseOrNot(value)), 'data', schema, table);
+  return onConflictPut(key, parseOrNot(value), 'data', schema, table);
 }
 
 /**
@@ -175,7 +175,7 @@ function batch(ops) {
     let { key, value } = ops[i],
       { table, schema } = findSchemaAndTable(key);
 
-    commands.push(onConflictPut(key, wrapJSONStringInObject(key, value), 'data', schema, table));
+    commands.push(onConflictPut(key, value, 'data', schema, table));
   }
 
   return Promise.all(commands);
