@@ -35,6 +35,8 @@ function put(key, value, testCacheEnabled) {
  * @return {Promise}
  */
 function get(key) {
+  if (!key) return Promise.reject(new Error('No key provided'));
+
   return redis.get(key)
     .then(data => {
       if (isUri(key)) return data;

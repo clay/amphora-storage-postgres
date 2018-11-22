@@ -47,6 +47,21 @@ describe('services/db', () => {
         expect(postgres.get).toHaveBeenCalledWith(KEY);
       });
     });
+
+    test('it fails when no key is being passed', () => {
+      let rejected = false;
+
+      redis.get.mockResolvedValue(JSON.stringify(VALUE));
+
+      return get().
+        then(() => {
+          expect(rejected).to.be.true;
+        })
+        .catch(err => {
+          rejected = true;
+          expect(err).toEqual(new Error('No key provided'));
+        });
+    });
   });
 
   describe('put', () => {
