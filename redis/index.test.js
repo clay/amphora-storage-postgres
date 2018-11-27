@@ -146,6 +146,7 @@ describe('redis', () => {
   describe('formatValue', () => {
     test('stringifies if you pass an object', () => {
       expect(formatValue(FAKE_DATA)).toBe(JSON.stringify(FAKE_DATA));
+      expect(formatValue([])).toBe(JSON.stringify([]));
     });
 
     test('does not stringify if you pass a non-object value', () => {
@@ -154,10 +155,6 @@ describe('redis', () => {
       expect(formatValue(true)).toBe(true);
       expect(formatValue(undefined)).toBe(undefined);
       expect(formatValue(null)).toBe(null);
-    });
-
-    test('does not stringify if you pass an array', () => {
-      expect(formatValue([])).toEqual([]);
     });
   });
 });

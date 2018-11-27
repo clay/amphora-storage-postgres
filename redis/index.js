@@ -47,7 +47,7 @@ function shouldProcess(key) {
  * @returns {*}
  */
 function formatValue(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
+  return value && typeof value === 'object'
     ? JSON.stringify(value)
     : value;
 }
