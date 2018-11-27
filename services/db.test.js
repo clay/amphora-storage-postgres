@@ -54,8 +54,8 @@ describe('services/db', () => {
 
       redis.get.mockResolvedValue(JSON.stringify(VALUE));
 
-      return get().
-        then(() => {
+      return get()
+        .then(() => {
           expect(rejected).to.be.true;
         })
         .catch(err => {
