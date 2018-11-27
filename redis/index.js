@@ -41,6 +41,18 @@ function shouldProcess(key) {
 }
 
 /**
+ * Formats a value to string if its an object
+ *
+ * @param {*} value
+ * @returns {*}
+ */
+function formatValue(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? JSON.stringify(value)
+    : value;
+}
+
+/**
  * Write a single value to a hash
  *
  * @param  {String} key
@@ -50,7 +62,7 @@ function shouldProcess(key) {
 function put(key, value) {
   if (!shouldProcess(key)) return bluebird.resolve();
 
-  return module.exports.client.hsetAsync(REDIS_HASH, key, value);
+  return module.exports.client.hsetAsync(REDIS_HASH, key, formatValue(value));
 }
 
 /**
@@ -116,3 +128,4 @@ module.exports.del = del;
 
 // For testing
 module.exports.stubClient = mock => module.exports.client = mock;
+module.exports.formatValue = formatValue;

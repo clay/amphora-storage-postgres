@@ -1,6 +1,6 @@
 'use strict';
 
-var { createClient, get, put, batch, del, stubClient } = require('./index'),
+var { createClient, get, put, batch, del, stubClient, formatValue } = require('./index'),
   redis = require('ioredis'),
   FAKE_DATA = { foo: true, bar: true },
   FAKE_OPS = [
@@ -140,6 +140,24 @@ describe('redis', () => {
         .catch(err => {
           expect(err).toHaveProperty('message', 'No Redis URL set');
         });
+    });
+  });
+
+  describe('formatValue', () => {
+    test('stringifies if you pass an object', () => {
+      expect(formatValue(FAKE_DATA)).toBe(JSON.stringify(FAKE_DATA));
+    });
+
+    test('does not stringify if you pass a non-object value', () => {
+      expect(formatValue(2)).toBe(2);
+      expect(formatValue('test')).toBe('test');
+      expect(formatValue(true)).toBe(true);
+      expect(formatValue(undefined)).toBe(undefined);
+      expect(formatValue(null)).toBe(null);
+    });
+
+    test('does not stringify if you pass an array', () => {
+      expect(formatValue([])).toEqual([]);
     });
   });
 });
