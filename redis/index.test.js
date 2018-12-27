@@ -1,7 +1,8 @@
 'use strict';
 
-var { createClient, get, put, batch, del, stubClient, formatValue } = require('./index'),
+var { createClient, get, put, batch, del, stubClient, formatValue, setLog } = require('./index'),
   redis = require('ioredis'),
+  FAKE_KEY = 'FAKE_KEY',
   FAKE_DATA = { foo: true, bar: true },
   FAKE_OPS = [
     {
@@ -145,16 +146,26 @@ describe('redis', () => {
 
   describe('formatValue', () => {
     test('stringifies if you pass an object', () => {
-      expect(formatValue(FAKE_DATA)).toBe(JSON.stringify(FAKE_DATA));
-      expect(formatValue([])).toBe(JSON.stringify([]));
+      expect(formatValue(FAKE_KEY, FAKE_DATA)).toBe(JSON.stringify(FAKE_DATA));
+      expect(formatValue(FAKE_KEY, [])).toBe(JSON.stringify([]));
+    });
+
+    test('logs a warning if the value is stringified', () => {
+      const mockLog = jest.fn();
+
+      setLog(mockLog);
+      formatValue(FAKE_KEY, FAKE_DATA);
+
+      expect(mockLog.mock.calls.length).toBe(1);
+      expect(mockLog.mock.calls[0][0]).toBe('warn');
     });
 
     test('does not stringify if you pass a non-object value', () => {
-      expect(formatValue(2)).toBe(2);
-      expect(formatValue('test')).toBe('test');
-      expect(formatValue(true)).toBe(true);
-      expect(formatValue(undefined)).toBe(undefined);
-      expect(formatValue(null)).toBe(null);
+      expect(formatValue(FAKE_KEY, 2)).toBe(2);
+      expect(formatValue(FAKE_KEY, 'test')).toBe('test');
+      expect(formatValue(FAKE_KEY, true)).toBe(true);
+      expect(formatValue(FAKE_KEY, undefined)).toBe(undefined);
+      expect(formatValue(FAKE_KEY, null)).toBe(null);
     });
   });
 });

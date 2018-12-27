@@ -43,13 +43,20 @@ function shouldProcess(key) {
 /**
  * Formats a value to string if its an object
  *
+ * @param {*} key
  * @param {*} value
  * @returns {*}
  */
-function formatValue(value) {
-  return value && typeof value === 'object'
-    ? JSON.stringify(value)
-    : value;
+function formatValue(key, value) {
+  // Since Redis only stores String values, we should
+  // encode any object into string.
+  if (value && typeof value === 'object') {
+    log('warn', `Re-encoding the object, needs to be stringified ${key}: ${value}`);
+
+    return JSON.stringify(value);
+  }
+
+  return value;
 }
 
 /**
@@ -62,7 +69,7 @@ function formatValue(value) {
 function put(key, value) {
   if (!shouldProcess(key)) return bluebird.resolve();
 
-  return module.exports.client.hsetAsync(REDIS_HASH, key, formatValue(value));
+  return module.exports.client.hsetAsync(REDIS_HASH, key, formatValue(key, value));
 }
 
 /**
@@ -129,3 +136,4 @@ module.exports.del = del;
 // For testing
 module.exports.stubClient = mock => module.exports.client = mock;
 module.exports.formatValue = formatValue;
+module.exports.setLog = mock => log = mock;
