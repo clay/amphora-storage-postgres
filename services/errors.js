@@ -18,6 +18,19 @@ function notFoundError(key) {
 }
 
 /**
+ * Format an error for when the key
+ * is not provided
+ *
+ * @return {Error}
+ */
+function noKeyError() {
+  const error = new Error('No key provided');
+
+  error.name = 'NoKeyError';
+  return error;
+}
+
+/**
  * Log an error
  *
  * @param  {String} file
@@ -28,6 +41,7 @@ function logGenericError(file) {
 }
 
 module.exports.notFoundError = notFoundError;
+module.exports.noKeyError = noKeyError;
 module.exports.logGenericError = logGenericError;
 
 // For testing

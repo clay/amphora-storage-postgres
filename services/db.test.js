@@ -2,7 +2,8 @@
 
 const { put, get, del, batch, createReadStream } = require('./db'),
   redis = require('../redis'),
-  postgres = require('../postgres/client');
+  postgres = require('../postgres/client'),
+  { noKeyError } = require('./errors');
 
 jest.mock('../redis');
 jest.mock('../postgres/client');
@@ -46,6 +47,21 @@ describe('services/db', () => {
         expect(redis.get).toHaveBeenCalledWith(KEY);
         expect(postgres.get).toHaveBeenCalledWith(KEY);
       });
+    });
+
+    test('it fails when no key is being passed', () => {
+      let rejected = false;
+
+      redis.get.mockResolvedValue(JSON.stringify(VALUE));
+
+      return get()
+        .then(() => {
+          expect(rejected).to.be.true;
+        })
+        .catch(err => {
+          rejected = true;
+          expect(err).toEqual(noKeyError());
+        });
     });
   });
 

@@ -3,6 +3,7 @@
 var redis = require('../redis'),
   postgres = require('../postgres/client'),
   { isUri } = require('clayutils'),
+  { noKeyError } = require('./errors'),
   { CACHE_ENABLED } = require('./constants');
 
 /**
@@ -35,6 +36,8 @@ function put(key, value, testCacheEnabled) {
  * @return {Promise}
  */
 function get(key) {
+  if (!key) return Promise.reject(noKeyError());
+
   return redis.get(key)
     .then(data => {
       if (isUri(key)) return data;
