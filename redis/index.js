@@ -11,7 +11,7 @@ var log = require('../services/log').setup({ file: __filename });
 Redis.Promise = bluebird;
 
 /**
- * Creates a  client connecting to a
+ * Creates a client connecting to a
  * Redis cluster.
  *
  * @param {String} redisUrl
@@ -22,10 +22,10 @@ function createClusterClient(redisUrl) {
   const endpoints = redisUrl.replace(/redis\:\/\//gi, '').split(',') // Split on commas
     .map(node => node.trim()) // Make sure we account for spaces in each declaration
     .map(node => {
-      var [host, port = 6379] = node.split(':'); // Split between host and port, default port to 6379 if just host
+      let [host, port = 6379] = node.split(':'); // Split between host and port, default port to 6379 if just host
 
       if (typeof port === 'string') port = parseInt(port, 10); // Parse the sring for ports
-      return { host, port}; // Return the formatted object
+      return { host, port }; // Return the formatted object
     });
 
   return new bluebird(resolve => {
@@ -37,17 +37,13 @@ function createClusterClient(redisUrl) {
 }
 
 /**
- * Creates a  client connecting to a single
+ * Creates a client connecting to a single
  * Redis instance.
  *
  * @param {String} redisUrl
  * @returns {Promise}
  */
 function createBasicClient(redisUrl) {
-  if (!redisUrl) {
-    return bluebird.reject(new Error('No Redis URL set'));
-  }
-
   log('debug', `Connecting to Redis at ${redisUrl}`);
 
   return new bluebird(resolve => {
