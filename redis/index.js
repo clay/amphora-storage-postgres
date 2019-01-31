@@ -106,8 +106,6 @@ function get(key) {
     return bluebird.reject(notFoundError(key));
   }
 
-  console.log(key)
-  console.log(module.exports.client.hget(REDIS_HASH, key))
   return module.exports.client.hget(REDIS_HASH, key)
     .then(data => data || bluebird.reject(notFoundError(key)));
 }
