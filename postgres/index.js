@@ -2,12 +2,13 @@
 
 const client = require('./client'),
   { createDb, migrate } = require('postgres-migrations'),
+  path = require('path'),
   {
     POSTGRES_USER,
     POSTGRES_PASSWORD,
     POSTGRES_HOST,
     POSTGRES_PORT,
-    POSTGRES_DB,
+    POSTGRES_DB
   } = require('../services/constants');
 
 /**
@@ -24,7 +25,7 @@ function setup(testPostgresHost) {
   }
 
   // run migrations
-  createDb('clay', {
+  createDb(POSTGRES_DB, {
     defaultDatabase: POSTGRES_DB,
     user: POSTGRES_USER,
     password: POSTGRES_PASSWORD,
@@ -40,19 +41,18 @@ function setup(testPostgresHost) {
           host: POSTGRES_HOST,
           port: POSTGRES_PORT
         },
-        '/Users/jowen/Coding/amphora-storage-postgres/services/migrations' // TODO relative filepath
+        path.join(__dirname, '../services/migrations')
       );
     })
     .then(() => {
-      console.log('Migrations Complete');
+      console.log('Migrations Complete'); // todo use log function
     })
     .catch(err => {
-      console.error(err);
+      console.error(err); // todo use log function
     });
 
   // connect to db
-  return client.connect()
-    .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }));
+  return client.connect().then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }));
 }
 
 module.exports.setup = setup;
