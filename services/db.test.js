@@ -13,23 +13,41 @@ describe('services/db', () => {
     OPS = [{ key: KEY, value: JSON.stringify(VALUE) }];
 
   describe('get', () => {
-    test('it does not call Postgres client if Redis has the data', () => {
-      redis.get.mockResolvedValue(JSON.stringify(VALUE));
+    test('it calls postgres if cache is disabled', () => {
+      postgres.get.mockResolvedValue(Promise.resolve());
 
       return get(KEY).then(() => {
+        expect(postgres.get.mock.calls.length).toBe(1);
+      });
+    });
+
+    test('it calls redis if cache is enabled', () => {
+      redis.get.mockResolvedValue(JSON.stringify(VALUE));
+
+      return get(KEY, true).then(() => {
+        expect(redis.get).toHaveBeenCalledWith(KEY);
+        expect(redis.get.mock.calls.length).toBe(1);
+        expect(postgres.get.mock.calls.length).toBe(0);
+      });
+    });
+
+    test('it does not call Postgres client if Redis has the data and cache is enabled', () => {
+      redis.get.mockResolvedValue(JSON.stringify(VALUE));
+
+      return get(KEY, true).then(() => {
         expect(redis.get.mock.calls.length).toBe(1);
         expect(redis.get).toHaveBeenCalledWith(KEY);
         expect(postgres.get.mock.calls.length).toBe(0);
       });
     });
 
-    test('it does does not try to parse a uri response', () => {
+    test('it does not try to parse a uri response', () => {
       const uri = 'foo.com/_uris/bar',
         page = 'foo.com/_pages/bar';
 
       redis.get.mockResolvedValue(page);
 
-      return get(uri).then(resp => {
+      return get(uri, true).then(resp => {
         expect(redis.get.mock.calls.length).toBe(1);
         expect(redis.get).toHaveBeenCalledWith(uri);
         expect(resp).toBe(page);
@@ -40,7 +58,7 @@ describe('services/db', () => {
     test('it does call Postgres client if Redis has the data', () => {
       redis.get.mockResolvedValue(Promise.reject());
 
-      return get(KEY).then(() => {
+      return get(KEY, true).then(() => {
         expect(redis.get.mock.calls.length).toBe(1);
         expect(postgres.get.mock.calls.length).toBe(1);
         expect(redis.get).toHaveBeenCalledWith(KEY);
