@@ -25,7 +25,7 @@ function setup(testPostgresHost) {
     return Promise.reject(new Error('No postgres host set'));
   }
 
-  return client.createDBIfNotExists
+  return client.createDBIfNotExists()
     .then(() => {
       return migrate(
         {
