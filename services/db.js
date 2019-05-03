@@ -32,15 +32,22 @@ function put(key, value, testCacheEnabled) {
  * return a Object, not stringified JSON
  *
  * @param  {String} key
+ * @param  {Boolean} testCacheEnabled used for tests
  * @return {Promise}
  */
-function get(key) {
-  return redis.get(key)
-    .then(data => {
-      if (isUri(key)) return data;
-      return JSON.parse(data); // Parse non-uri data to match Postgres
-    })
-    .catch(() => postgres.get(key));
+function get(key, testCacheEnabled) {
+  const cacheEnabled = testCacheEnabled || CACHE_ENABLED;
+
+  if (cacheEnabled) {
+    return redis.get(key)
+      .then(data => {
+        if (isUri(key)) return data;
+        return JSON.parse(data); // Parse non-uri data to match Postgres
+      })
+      .catch(() => postgres.get(key));
+  }
+
+  return postgres.get(key);
 }
 
 /**
