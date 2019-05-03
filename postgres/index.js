@@ -10,7 +10,8 @@ const client = require('./client'),
     POSTGRES_PORT,
     POSTGRES_DB
   } = require('../services/constants'),
-  log = require('../services/log').setup({ file: __filename });
+  log = require('../services/log').setup({ file: __filename }),
+  { logGenericError } = require('../services/errors');
 
 /**
  * Connect and create schemas/tables
@@ -25,14 +26,14 @@ function setup(testPostgresHost) {
     return Promise.reject(new Error('No postgres host set'));
   }
 
-  return client.createDBIfNotExists()
+  return client.connect()
     .then(() => {
       return migrate(
         {
           database: POSTGRES_DB,
           user: POSTGRES_USER,
           password: POSTGRES_PASSWORD,
-          host: POSTGRES_HOST,
+          host: postgresHost,
           port: POSTGRES_PORT
         },
         path.join(__dirname, '../services/migrations')
@@ -41,10 +42,8 @@ function setup(testPostgresHost) {
     .then(() => {
       log('info', 'Migrations Complete');
     })
-    .then(()=> client.connect().then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` })))
-    .catch(err => {
-      log('error', err);
-    });
+    .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }))
+    .catch(logGenericError);
 }
 
 module.exports.setup = setup;
