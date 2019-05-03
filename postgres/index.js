@@ -1,7 +1,7 @@
 'use strict';
 
 const client = require('./client'),
-  { createDb, migrate } = require('postgres-migrations'),
+  { migrate } = require('postgres-migrations'),
   path = require('path'),
   {
     POSTGRES_USER,
@@ -9,7 +9,8 @@ const client = require('./client'),
     POSTGRES_HOST,
     POSTGRES_PORT,
     POSTGRES_DB
-  } = require('../services/constants');
+  } = require('../services/constants'),
+  log = require('../services/log').setup({ file: __filename });
 
 /**
  * Connect and create schemas/tables
@@ -24,14 +25,7 @@ function setup(testPostgresHost) {
     return Promise.reject(new Error('No postgres host set'));
   }
 
-  // run migrations
-  createDb(POSTGRES_DB, {
-    defaultDatabase: POSTGRES_DB,
-    user: POSTGRES_USER,
-    password: POSTGRES_PASSWORD,
-    host: POSTGRES_HOST,
-    port: POSTGRES_PORT
-  })
+  return client.createDBIfNotExists
     .then(() => {
       return migrate(
         {
@@ -45,14 +39,12 @@ function setup(testPostgresHost) {
       );
     })
     .then(() => {
-      console.log('Migrations Complete'); // todo use log function
+      log('info', 'Migrations Complete');
     })
+    .then(()=> client.connect().then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` })))
     .catch(err => {
-      console.error(err); // todo use log function
+      log('error', err);
     });
-
-  // connect to db
-  return client.connect().then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }));
 }
 
 module.exports.setup = setup;
