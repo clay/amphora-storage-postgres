@@ -2,22 +2,19 @@
 
 const { setup } = require('./index'),
   client = require('./client'),
-  { getComponents, getLayouts } = require('amphora-fs');
+  { migrate } = require('postgres-migrations');
 
 jest.mock('./client');
 jest.mock('amphora-fs');
+jest.mock('postgres-migrations');
 
 describe('postgres/index', () => {
-  test('calls connect and then sets up the db', () => {
+  test('sets up the db then calls connect', () => {
     client.connect.mockResolvedValue('');
-    getComponents.mockReturnValue(['foo', 'bar', 'baz']);
-    getLayouts.mockReturnValue(['baz', 'bar',  'foo']);
+    migrate.mockResolvedValue('');
 
     return setup('localhost').then(resp => {
       expect(client.connect.mock.calls.length).toBe(1);
-      expect(client.createSchema.mock.calls.length).toBe(2);
-      expect(client.createSchema.mock.calls[0][0]).toBe('components');
-      expect(client.createSchema.mock.calls[1][0]).toBe('layouts');
       expect(resp).toHaveProperty('server');
     });
   });
