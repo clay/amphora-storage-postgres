@@ -9,7 +9,7 @@ jest.mock('amphora-fs');
 jest.mock('postgres-migrations');
 
 describe('postgres/index', () => {
-  test('sets up the db then calls connect', () => {
+  test('calls connect and then sets up the db', () => {
     client.connect.mockResolvedValue('');
     migrate.mockResolvedValue('');
 
