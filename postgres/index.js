@@ -8,12 +8,12 @@ const client = require('./client'),
     POSTGRES_PASSWORD,
     POSTGRES_HOST,
     POSTGRES_PORT,
-    POSTGRES_DB
+    POSTGRES_DB,
+    DATA_STRUCTURES
   } = require('../services/constants'),
   log = require('../services/log').setup({ file: __filename }),
   { logGenericError } = require('../services/errors'),
   bluebird = require('bluebird'),
-  { DATA_STRUCTURES, POSTGRES_HOST, POSTGRES_PORT } = require('../services/constants'),
   { getComponents, getLayouts } = require('amphora-fs');
 
 /**
