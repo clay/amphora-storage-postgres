@@ -41,9 +41,8 @@ function get(key, testCacheEnabled) {
   if (cacheEnabled) {
     return redis.get(key)
       .then(data => {
-        if (isUri(key)) return data;
-
-        return JSON.parse(data); // Parse non-uri data to match Postgres
+        // Parse non-uri data to match Postgres
+        return isUri(key) ? data : JSON.parse(data);
       })
       .catch(() => postgres.get(key));
   }
