@@ -1,8 +1,19 @@
 'use strict';
 
 const client = require('./client'),
+  { migrate } = require('postgres-migrations'),
+  path = require('path'),
+  {
+    POSTGRES_USER,
+    POSTGRES_PASSWORD,
+    POSTGRES_HOST,
+    POSTGRES_PORT,
+    POSTGRES_DB,
+    DATA_STRUCTURES
+  } = require('../services/constants'),
+  log = require('../services/log').setup({ file: __filename }),
+  { logGenericError } = require('../services/errors'),
   bluebird = require('bluebird'),
-  { DATA_STRUCTURES, POSTGRES_HOST, POSTGRES_PORT } = require('../services/constants'),
   { getComponents, getLayouts } = require('amphora-fs');
 
 /**
@@ -31,7 +42,6 @@ function createTables() {
   return bluebird.all(getComponents().map(component => client.createTable(`components.${component}`)))
     .then(() => bluebird.all(getLayouts().map(layout => client.createTableWithMeta(`layouts.${layout}`))))
     .then(() => client.createTableWithMeta('pages'))
-    .then(() => client.raw('CREATE TABLE IF NOT EXISTS ?? ( id TEXT PRIMARY KEY NOT NULL, data TEXT NOT NULL, url TEXT );', ['uris']))
     .then(() => createRemainingTables());
 }
 
@@ -49,10 +59,24 @@ function setup(testPostgresHost) {
   }
 
   return client.connect()
-    .then(() => client.createSchema('components'))
-    .then(() => client.createSchema('layouts'))
-    .then(createTables)
-    .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }));
+    .then(() => {
+      return migrate(
+        {
+          database: POSTGRES_DB,
+          user: POSTGRES_USER,
+          password: POSTGRES_PASSWORD,
+          host: postgresHost,
+          port: POSTGRES_PORT
+        },
+        path.join(__dirname, '../services/migrations')
+      );
+    })
+    .then(() => {
+      log('info', 'Migrations Complete');
+    })
+    .then(() => createTables())
+    .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }))
+    .catch(logGenericError);
 }
 
 module.exports.setup = setup;
