@@ -85,6 +85,9 @@ module.exports.put = put;
 module.exports.get = get;
 module.exports.del = del;
 module.exports.batch = batch;
+
+module.exports.applyLock = redis.applyLock;
+
 module.exports.raw = postgres.raw;
 module.exports.putMeta = postgres.putMeta;
 module.exports.getMeta = postgres.getMeta;

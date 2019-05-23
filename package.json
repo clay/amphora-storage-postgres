@@ -24,7 +24,8 @@
     "knex": "^0.15.2",
     "pg": "7.4.3",
     "pg-query-stream": "^1.1.1",
-    "postgres-migrations": "^3.0.2"
+    "postgres-migrations": "^3.0.2",
+    "redlock": "^3.1.2"
   },
   "devDependencies": {
     "coveralls": "^3.0.1",

@@ -4,7 +4,9 @@ const bluebird = require('bluebird'),
   Redis = require('ioredis'),
   { REDIS_URL, REDIS_HASH } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
-  { notFoundError, logGenericError } = require('../services/errors');
+  { notFoundError, logGenericError } = require('../services/errors'),
+  Redlock = require('redlock');
+
 var log = require('../services/log').setup({ file: __filename });
 
 /**
@@ -26,7 +28,58 @@ function createClient(testRedisUrl) {
     module.exports.client = bluebird.promisifyAll(new Redis(redisUrl));
     module.exports.client.on('error', logGenericError(__filename));
 
+    // TODO: Move this config to another module maybe?
+    const redlock = new Redlock([module.exports.client], {
+      // the expected clock drift; for more details
+      // see http://redis.io/topics/distlock
+      driftFactor: 0.01, // time in ms
+
+      // the max number of times Redlock will attempt
+      // to lock a resource before erroring
+      retryCount: 0,
+
+      // the time in ms between attempts
+      retryDelay: 200, // time in ms
+
+      // the max time in ms randomly added to retries
+      // to improve performance under high contention
+      // see https://www.awsarchitectureblog.com/2015/03/backoff.html
+      retryJitter: 200 // time in ms
+    });
+
+    redlock.on('clientError', logGenericError(__filename));
+    module.exports.redlock = redlock;
+
     resolve({ server: redisUrl });
+  });
+}
+
+function lockRedisForAction(resourceId) {
+  console.log('lockRedisForAction', { resourceId, lock: module.exports.redlock.lock });
+  return module.exports.redlock.lock(resourceId, 1200);
+}
+
+function unlockWhenReady(lock, cb) {
+  return cb()
+    .then(result => module.exports.redlock.unlock(lock).then(() => result));
+}
+function getFromState(id) {
+  return module.exports.client.getAsync(id);
+}
+
+function setInState(action) {
+  return module.exports.client.setAsync(action, true);
+}
+
+function applyLock(resourceId, cb) {
+  const ACTION = 'bootstrap3';
+
+  return getFromState(ACTION).then(didRunBootstrap => {
+    if (didRunBootstrap) return;
+
+    return setInState(ACTION)
+      .then(() => lockRedisForAction(resourceId))
+      .then(lock => unlockWhenReady(lock, cb));
   });
 }
 
@@ -108,6 +161,8 @@ function del(key) {
 }
 
 module.exports.client = null;
+module.exports.redlock;
+module.exports.applyLock = applyLock;
 module.exports.createClient = createClient;
 module.exports.get = get;
 module.exports.put = put;
