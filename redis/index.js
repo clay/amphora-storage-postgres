@@ -63,23 +63,49 @@ function unlockWhenReady(lock, cb) {
   return cb()
     .then(result => module.exports.redlock.unlock(lock).then(() => result));
 }
+
 function getFromState(id) {
   return module.exports.client.getAsync(id);
 }
 
-function setInState(action) {
-  return module.exports.client.setAsync(action, true);
+function setState(action, state) {
+  return module.exports.client.setAsync(action, state);
 }
 
-function applyLock(resourceId, cb) {
-  const ACTION = 'bootstrap3';
+function sleepAndRun(cb, ms = 1000) {
+  return new Promise(resolve => {
+    console.log('\n\nRUNNING THE FUNC AGAIN');
+    setTimeout(() => {
+      cb().then(resolve);
+    }, ms);
+  });
+}
 
-  return getFromState(ACTION).then(didRunBootstrap => {
-    if (didRunBootstrap) return;
+function applyLock(action, cb) {
+  const resourceId = action + '-lock';
 
-    return setInState(ACTION)
+  console.log({ resourceId, action });
+
+  return getFromState(action).then(state => {
+    console.log('\n\nSTATE', { state });
+    /**
+     * If its ONGOING, just re-run this func after a while
+     * to see if the state changed
+     */
+    if (state === 'ONGOING') {
+      return sleepAndRun(() => applyLock(action, cb), 500);
+    }
+
+    if (state === 'FINISHED') return Promise.resolve();
+
+    if (!state || state === 'RETRY') return setState(action, 'ONGOING')
       .then(() => lockRedisForAction(resourceId))
-      .then(lock => unlockWhenReady(lock, cb));
+      .then(lock => unlockWhenReady(lock, cb))
+      .then(() => setState(action, 'FINISHED'))
+      .catch(() => setState(action, 'RETRY'));
+
+    console.log('\n\nThe state had a value that I didnt recognize', { state });
+    return Promise.resolve();
   });
 }
 
