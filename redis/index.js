@@ -54,9 +54,8 @@ function createClient(testRedisUrl) {
   });
 }
 
-function lockRedisForAction(resourceId) {
-  console.log('lockRedisForAction', { resourceId, lock: module.exports.redlock.lock });
-  return module.exports.redlock.lock(resourceId, 1200);
+function lockRedisForAction(resourceId, ttl) {
+  return module.exports.redlock.lock(resourceId, ttl);
 }
 
 function unlockWhenReady(lock, cb) {
@@ -68,43 +67,40 @@ function getFromState(id) {
   return module.exports.client.getAsync(id);
 }
 
-function setState(action, state) {
-  return module.exports.client.setAsync(action, state);
+function setState(action, state, expire) {
+  return module.exports.client.setAsync(action, state)
+    .then(() => {
+      if (expire) return module.exports.client.expire(action, expire); // Expire in 10 minutes
+    });
 }
 
 function sleepAndRun(cb, ms = 1000) {
-  return new Promise(resolve => {
-    console.log('\n\nRUNNING THE FUNC AGAIN');
-    setTimeout(() => {
-      cb().then(resolve);
-    }, ms);
-  });
+  return new Promise(resolve => setTimeout(() => cb().then(resolve), ms));
 }
 
 function applyLock(action, cb) {
-  const resourceId = action + '-lock';
-
-  console.log({ resourceId, action });
+  const resourceId = action + '-lock',
+    RETRY_TIME = 1500, // ms
+    KEY_TTL = 10 * 60, // secs
+    LOCK_TTL = 1200;
 
   return getFromState(action).then(state => {
-    console.log('\n\nSTATE', { state });
     /**
      * If its ONGOING, just re-run this func after a while
      * to see if the state changed
      */
     if (state === 'ONGOING') {
-      return sleepAndRun(() => applyLock(action, cb), 500);
+      return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
     }
 
     if (state === 'FINISHED') return Promise.resolve();
 
     if (!state || state === 'RETRY') return setState(action, 'ONGOING')
-      .then(() => lockRedisForAction(resourceId))
+      .then(() => lockRedisForAction(resourceId, LOCK_TTL))
       .then(lock => unlockWhenReady(lock, cb))
-      .then(() => setState(action, 'FINISHED'))
+      .then(() => setState(action, 'FINISHED', KEY_TTL))
       .catch(() => setState(action, 'RETRY'));
 
-    console.log('\n\nThe state had a value that I didnt recognize', { state });
     return Promise.resolve();
   });
 }
