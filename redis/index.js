@@ -5,7 +5,7 @@ const bluebird = require('bluebird'),
   { REDIS_URL, REDIS_HASH } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
   { notFoundError, logGenericError } = require('../services/errors'),
-  Redlock = require('redlock');
+  lock = require('./lock');
 
 var log = require('../services/log').setup({ file: __filename });
 
@@ -28,86 +28,9 @@ function createClient(testRedisUrl) {
     module.exports.client = bluebird.promisifyAll(new Redis(redisUrl));
     module.exports.client.on('error', logGenericError(__filename));
 
-    // TODO: Move this config to another module maybe?
-    const redlock = new Redlock([module.exports.client], {
-      // the expected clock drift; for more details
-      // see http://redis.io/topics/distlock
-      driftFactor: 0.01, // time in ms
-
-      // the max number of times Redlock will attempt
-      // to lock a resource before erroring
-      retryCount: 0,
-
-      // the time in ms between attempts
-      retryDelay: 200, // time in ms
-
-      // the max time in ms randomly added to retries
-      // to improve performance under high contention
-      // see https://www.awsarchitectureblog.com/2015/03/backoff.html
-      retryJitter: 200 // time in ms
-    });
-
-    redlock.on('clientError', logGenericError(__filename));
-    module.exports.redlock = redlock;
+    lock.setup(module.exports.client);
 
     resolve({ server: redisUrl });
-  });
-}
-
-function lockRedisForAction(resourceId, ttl) {
-  log('warn', `Trying to lock redis for resource id ${resourceId}`, { resourceId, processId: process.pid });
-  return module.exports.redlock.lock(resourceId, ttl);
-}
-
-function unlockWhenReady(lock, resourceId, cb) {
-  return cb()
-    .then(result => module.exports.redlock.unlock(lock)
-      .then(() => {
-        log('warn', `Releasing lock for resource id ${resourceId}`, { resourceId, processId: process.pid });
-        return result;
-      }));
-}
-
-function getFromState(id) {
-  return module.exports.client.getAsync(id);
-}
-
-function setState(action, state, expire) {
-  return module.exports.client.setAsync(action, state)
-    .then(() => {
-      if (expire) return module.exports.client.expire(action, expire); // Expire in 10 minutes
-    });
-}
-
-function sleepAndRun(cb, ms = 1000) {
-  return new Promise(resolve => setTimeout(() => cb().then(resolve), ms));
-}
-
-function applyLock(action, cb) {
-  const resourceId = `${action}-lock`,
-    ACTIONS = {
-      ONGOING: 'ON-GOING',
-      RETRY: 'RETRY',
-      FINISHED: 'FINISHED'
-    },
-    RETRY_TIME = 1500, // ms
-    KEY_TTL = 10 * 60, // secs
-    LOCK_TTL = 5000; // ms
-
-  return getFromState(action).then(state => {
-    /**
-     * If its ONGOING, just re-run this function after a while
-     * to see if the state changed.
-     */
-    if (state === ACTIONS.ONGOING) {
-      return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
-    }
-
-    if (!state || state === 'RETRY') return setState(action, ACTIONS.ONGOING)
-      .then(() => lockRedisForAction(resourceId, LOCK_TTL))
-      .then(lock => unlockWhenReady(lock, resourceId, cb))
-      .then(() => setState(action, ACTIONS.FINISHED, KEY_TTL))
-      .catch(() => setState(action, ACTIONS.RETRY));
   });
 }
 
@@ -189,8 +112,7 @@ function del(key) {
 }
 
 module.exports.client = null;
-module.exports.redlock;
-module.exports.applyLock = applyLock;
+module.exports.applyLock = lock.applyLock;
 module.exports.createClient = createClient;
 module.exports.get = get;
 module.exports.put = put;
