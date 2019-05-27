@@ -55,12 +55,17 @@ function createClient(testRedisUrl) {
 }
 
 function lockRedisForAction(resourceId, ttl) {
+  log('warn', `Trying to lock redis for resource id ${resourceId}`, { resourceId, processId: process.pid });
   return module.exports.redlock.lock(resourceId, ttl);
 }
 
-function unlockWhenReady(lock, cb) {
+function unlockWhenReady(lock, resourceId, cb) {
   return cb()
-    .then(result => module.exports.redlock.unlock(lock).then(() => result));
+    .then(result => module.exports.redlock.unlock(lock)
+      .then(() => {
+        log('warn', `Releasing lock for resource id ${resourceId}`, { resourceId, processId: process.pid });
+        return result;
+      }));
 }
 
 function getFromState(id) {
@@ -79,29 +84,30 @@ function sleepAndRun(cb, ms = 1000) {
 }
 
 function applyLock(action, cb) {
-  const resourceId = action + '-lock',
+  const resourceId = `${action}-lock`,
+    ACTIONS = {
+      ONGOING: 'ON-GOING',
+      RETRY: 'RETRY',
+      FINISHED: 'FINISHED'
+    },
     RETRY_TIME = 1500, // ms
     KEY_TTL = 10 * 60, // secs
-    LOCK_TTL = 1200;
+    LOCK_TTL = 5000; // ms
 
   return getFromState(action).then(state => {
     /**
-     * If its ONGOING, just re-run this func after a while
-     * to see if the state changed
+     * If its ONGOING, just re-run this function after a while
+     * to see if the state changed.
      */
-    if (state === 'ONGOING') {
+    if (state === ACTIONS.ONGOING) {
       return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
     }
 
-    if (state === 'FINISHED') return Promise.resolve();
-
-    if (!state || state === 'RETRY') return setState(action, 'ONGOING')
+    if (!state || state === 'RETRY') return setState(action, ACTIONS.ONGOING)
       .then(() => lockRedisForAction(resourceId, LOCK_TTL))
-      .then(lock => unlockWhenReady(lock, cb))
-      .then(() => setState(action, 'FINISHED', KEY_TTL))
-      .catch(() => setState(action, 'RETRY'));
-
-    return Promise.resolve();
+      .then(lock => unlockWhenReady(lock, resourceId, cb))
+      .then(() => setState(action, ACTIONS.FINISHED, KEY_TTL))
+      .catch(() => setState(action, ACTIONS.RETRY));
   });
 }
 
