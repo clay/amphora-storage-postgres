@@ -78,8 +78,18 @@ function decode(string) {
   return Buffer.from(string, 'base64').toString('utf8');
 }
 
+/**
+ * Check whether the passed value is an Object or not.
+ * @param {any} value
+ * @returns {boolean}
+ */
+function isObject(value) {
+  return typeof value === 'object' && !Array.isArray(value) && value !== null && !!value;
+}
+
 module.exports.findSchemaAndTable = findSchemaAndTable;
 module.exports.parseOrNot = parseOrNot;
 module.exports.wrapInObject = wrapInObject;
 module.exports.wrapJSONStringInObject = wrapJSONStringInObject;
 module.exports.decode = decode;
+module.exports.isObject = isObject;

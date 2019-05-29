@@ -2,10 +2,10 @@
 
 const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, CONNECTION_POOL_MIN, CONNECTION_POOL_MAX } = require('../services/constants'),
   { notFoundError } = require('../services/errors'),
-  { parseOrNot, wrapInObject, decode } = require('../services/utils'),
+  { parseOrNot, wrapInObject, decode, isObject } = require('../services/utils'),
   { findSchemaAndTable, wrapJSONStringInObject } = require('../services/utils'),
   knexLib = require('knex'),
-  { isList, isUri } = require('clayutils'),
+  { isList, isUri, isUser } = require('clayutils'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
 var knex, log = require('../services/log').setup({ file: __filename });
@@ -130,10 +130,19 @@ function columnToValueMap(column, value, obj = {}) {
  */
 function put(key, value) {
   const { schema, table } = findSchemaAndTable(key),
-    map = columnToValueMap('id', key); // create the value map
+    map = columnToValueMap('id', key), // create the value map
+    parsedValue = parseOrNot(value);
+
+  if (!isUser(key) && isObject(parsedValue) && parsedValue.siteSlug) {
+    // add site id column to map
+    columnToValueMap('site_id', parsedValue.siteSlug, map);
+
+    // delete this property to avoid duplication in data column
+    delete parsedValue.siteSlug;
+  }
 
   // add data to the map
-  columnToValueMap('data', wrapInObject(key, parseOrNot(value)), map);
+  columnToValueMap('data', wrapInObject(key, parsedValue), map);
 
   let url;
 
@@ -143,7 +152,6 @@ function put(key, value) {
     // add url column to map if we're PUTting a uri
     columnToValueMap('url', url, map);
   }
-
 
   return onConflictPut(map, schema, table)
     .then(() => map.data);
