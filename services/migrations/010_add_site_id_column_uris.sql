@@ -1,0 +1,5 @@
+ALTER TABLE IF EXISTS uris
+ADD COLUMN IF NOT EXISTS site_id VARCHAR(255);
+
+UPDATE uris
+SET site_id = (SELECT LEFT(id, STRPOS(id, '/_uris') - 1) FROM uris LIMIT 1);
