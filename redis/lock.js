@@ -102,6 +102,10 @@ function applyLock(action, cb) {
   });
 }
 
+/**
+ *
+ * @param {*} instance
+ */
 function setup(instance) {
   if (!instance) return emptyModule;
 
