@@ -28,6 +28,11 @@ const Redlock = require('redlock'),
 let log = require('../services/log').setup({ file: __filename }),
   ACTION_RETRY_COUNT = 0;
 
+/**
+ *
+ * @param {*} resourceId
+ * @param {*} ttl
+ */
 function lockRedisForAction(resourceId, ttl) {
   log('trace', `Trying to lock redis for resource id ${resourceId}`, {
     resourceId,
@@ -36,6 +41,12 @@ function lockRedisForAction(resourceId, ttl) {
   return module.exports.redlock.lock(resourceId, ttl);
 }
 
+/**
+ *
+ * @param {*} lock
+ * @param {*} resourceId
+ * @param {*} cb
+ */
 function unlockWhenReady(lock, resourceId, cb) {
   return cb().then(result =>
     module.exports.redlock.unlock(lock).then(() => {
@@ -48,20 +59,40 @@ function unlockWhenReady(lock, resourceId, cb) {
   );
 }
 
+/**
+ *
+ * @param {*} id
+ */
 function getFromState(id) {
   return module.exports.redis.getAsync(id);
 }
 
+/**
+ *
+ * @param {*} action
+ * @param {*} state
+ * @param {*} expire
+ */
 function setState(action, state, expire) {
   return module.exports.redis.setAsync(action, state).then(() => {
     if (expire) return module.exports.redis.expire(action, expire);
   });
 }
 
+/**
+ *
+ * @param {*} cb
+ * @param {*} ms
+ */
 function sleepAndRun(cb, ms = 1000) {
   return new Promise(resolve => setTimeout(() => cb().then(resolve), ms));
 }
 
+/**
+ *
+ * @param {*} action
+ * @param {*} cb
+ */
 function applyLock(action, cb) {
   const resourceId = `${action}-lock`,
     ACTIONS = {
