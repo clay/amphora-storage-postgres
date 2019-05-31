@@ -29,17 +29,23 @@ let log = require('../services/log').setup({ file: __filename }),
   ACTION_RETRY_COUNT = 0;
 
 function lockRedisForAction(resourceId, ttl) {
-  log('trace', `Trying to lock redis for resource id ${resourceId}`, { resourceId, processId: process.pid });
+  log('trace', `Trying to lock redis for resource id ${resourceId}`, {
+    resourceId,
+    processId: process.pid
+  });
   return module.exports.redlock.lock(resourceId, ttl);
 }
 
 function unlockWhenReady(lock, resourceId, cb) {
-  return cb()
-    .then(result => module.exports.redlock.unlock(lock)
-      .then(() => {
-        log('trace', `Releasing lock for resource id ${resourceId}`, { resourceId, processId: process.pid });
-        return result;
-      }));
+  return cb().then(result =>
+    module.exports.redlock.unlock(lock).then(() => {
+      log('trace', `Releasing lock for resource id ${resourceId}`, {
+        resourceId,
+        processId: process.pid
+      });
+      return result;
+    })
+  );
 }
 
 function getFromState(id) {
@@ -47,10 +53,9 @@ function getFromState(id) {
 }
 
 function setState(action, state, expire) {
-  return module.exports.redis.setAsync(action, state)
-    .then(() => {
-      if (expire) return module.exports.redis.expire(action, expire);
-    });
+  return module.exports.redis.setAsync(action, state).then(() => {
+    if (expire) return module.exports.redis.expire(action, expire);
+  });
 }
 
 function sleepAndRun(cb, ms = 1000) {
@@ -77,21 +82,23 @@ function applyLock(action, cb) {
       return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
     }
 
-    if (!state || state === 'RETRY') return setState(action, ACTIONS.ONGOING)
-      .then(() => lockRedisForAction(resourceId, LOCK_TTL))
-      .then(lock => unlockWhenReady(lock, resourceId, cb))
-      .then(() => setState(action, ACTIONS.FINISHED, KEY_TTL))
-      .catch(() => {
-        ACTION_RETRY_COUNT++;
+    if (!state || state === 'RETRY')
+      return setState(action, ACTIONS.ONGOING)
+        .then(() => lockRedisForAction(resourceId, LOCK_TTL))
+        .then(lock => unlockWhenReady(lock, resourceId, cb))
+        .then(() => setState(action, ACTIONS.FINISHED, KEY_TTL))
+        .catch(() => {
+          ACTION_RETRY_COUNT++;
 
-        if (ACTION_RETRY_COUNT === ACTION_RETRY_TOTAL) {
-          log('error', `Action "${action}" could not be executed`);
-          return setState(action, ACTIONS.FINISHED, KEY_TTL);
-        }
+          if (ACTION_RETRY_COUNT === ACTION_RETRY_TOTAL) {
+            log('error', `Action "${action}" could not be executed`);
+            return setState(action, ACTIONS.FINISHED, KEY_TTL);
+          }
 
-        return setState(action, ACTIONS.RETRY)
-          .then(() => sleepAndRun(() => applyLock(action, cb), RETRY_TIME));
-      });
+          return setState(action, ACTIONS.RETRY).then(() =>
+            sleepAndRun(() => applyLock(action, cb), RETRY_TIME)
+          );
+        });
   });
 }
 
