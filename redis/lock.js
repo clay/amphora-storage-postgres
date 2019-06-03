@@ -23,15 +23,16 @@ const Redlock = require('redlock'),
     // see https://www.awsarchitectureblog.com/2015/03/backoff.html
     retryJitter: 200 // time in ms
   },
-  ACTION_RETRY_TOTAL = 5;
+  action_retry_total = 5;
 
 let log = require('../services/log').setup({ file: __filename }),
-  ACTION_RETRY_COUNT = 0;
+  action_retry_count = 0;
 
 /**
  *
- * @param {*} resourceId
- * @param {*} ttl
+ * @param {string} resourceId
+ * @param {number} ttl
+ * @returns {Promise}
  */
 function lockRedisForAction(resourceId, ttl) {
   log('trace', `Trying to lock redis for resource id ${resourceId}`, {
@@ -43,9 +44,10 @@ function lockRedisForAction(resourceId, ttl) {
 
 /**
  *
- * @param {*} lock
- * @param {*} resourceId
- * @param {*} cb
+ * @param {Object} lock
+ * @param {string} resourceId
+ * @param {Function} cb
+ * @returns {Promise}
  */
 function unlockWhenReady(lock, resourceId, cb) {
   return cb().then(result =>
@@ -61,7 +63,8 @@ function unlockWhenReady(lock, resourceId, cb) {
 
 /**
  *
- * @param {*} id
+ * @param {string} id
+ * @returns {Promise}
  */
 function getFromState(id) {
   return module.exports.redis.getAsync(id);
@@ -69,9 +72,10 @@ function getFromState(id) {
 
 /**
  *
- * @param {*} action
- * @param {*} state
- * @param {*} expire
+ * @param {string} action
+ * @param {string} state
+ * @param {number} expire
+ * @returns {Promise}
  */
 function setState(action, state, expire) {
   return module.exports.redis.setAsync(action, state).then(() => {
@@ -81,8 +85,9 @@ function setState(action, state, expire) {
 
 /**
  *
- * @param {*} cb
- * @param {*} ms
+ * @param {Function} cb
+ * @param {number} ms
+ * @returns {Promise}
  */
 function sleepAndRun(cb, ms = 1000) {
   return new Promise(resolve => setTimeout(() => cb().then(resolve), ms));
@@ -90,12 +95,13 @@ function sleepAndRun(cb, ms = 1000) {
 
 /**
  *
- * @param {*} action
- * @param {*} cb
+ * @param {string} action
+ * @param {Function} cb
+ * @returns {Promise}
  */
 function applyLock(action, cb) {
   const resourceId = `${action}-lock`,
-    ACTIONS = {
+    STATE = {
       ONGOING: 'ON-GOING',
       RETRY: 'RETRY',
       FINISHED: 'FINISHED'
@@ -106,27 +112,27 @@ function applyLock(action, cb) {
 
   return getFromState(action).then(state => {
     /**
-     * If its ONGOING, just re-run this function after a while
+     * If it's ONGOING, just re-run this function after a while
      * to see if the state changed.
      */
-    if (state === ACTIONS.ONGOING) {
+    if (state === STATE.ONGOING) {
       return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
     }
 
-    if (!state || state === 'RETRY')
-      return setState(action, ACTIONS.ONGOING)
+    if (!state || state === STATE.RETRY)
+      return setState(action, STATE.ONGOING)
         .then(() => lockRedisForAction(resourceId, LOCK_TTL))
         .then(lock => unlockWhenReady(lock, resourceId, cb))
-        .then(() => setState(action, ACTIONS.FINISHED, KEY_TTL))
+        .then(() => setState(action, STATE.FINISHED, KEY_TTL))
         .catch(() => {
-          ACTION_RETRY_COUNT++;
+          action_retry_count++;
 
-          if (ACTION_RETRY_COUNT === ACTION_RETRY_TOTAL) {
+          if (action_retry_count === action_retry_total) {
             log('error', `Action "${action}" could not be executed`);
-            return setState(action, ACTIONS.FINISHED, KEY_TTL);
+            return setState(action, STATE.FINISHED, KEY_TTL);
           }
 
-          return setState(action, ACTIONS.RETRY).then(() =>
+          return setState(action, STATE.RETRY).then(() =>
             sleepAndRun(() => applyLock(action, cb), RETRY_TIME)
           );
         });
@@ -135,7 +141,8 @@ function applyLock(action, cb) {
 
 /**
  *
- * @param {*} instance
+ * @param {Object} instance
+ * @returns {Object}
  */
 function setup(instance) {
   if (!instance) return emptyModule;
