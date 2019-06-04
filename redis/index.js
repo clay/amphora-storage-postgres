@@ -28,7 +28,7 @@ function createClient(testRedisUrl) {
     module.exports.client = bluebird.promisifyAll(new Redis(redisUrl));
     module.exports.client.on('error', logGenericError(__filename));
 
-    lock.setup(module.exports.client);
+    lock.setupRedlock(module.exports.client);
 
     resolve({ server: redisUrl });
   });

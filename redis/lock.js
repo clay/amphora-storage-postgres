@@ -152,7 +152,7 @@ function applyLock(action, cb) {
  * @param {Object} instance Redis instance
  * @returns {Object} Redlock instance
  */
-function setup(instance) {
+function setupRedlock(instance) {
   if (!instance) return emptyModule;
 
   const redlock = new Redlock([instance], CONFIG);
@@ -168,5 +168,5 @@ function setup(instance) {
 module.exports.redis = {};
 module.exports.redlock;
 
-module.exports.setup = setup;
+module.exports.setupRedlock = setupRedlock;
 module.exports.applyLock = applyLock;
