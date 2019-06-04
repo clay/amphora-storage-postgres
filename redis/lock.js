@@ -29,6 +29,8 @@ let log = require('../services/log').setup({ file: __filename }),
   action_retry_count = 0;
 
 /**
+ * Adds a lock to redis with the given id
+ * for a determined period of time
  *
  * @param {string} resourceId
  * @param {number} ttl
@@ -43,10 +45,12 @@ function lockRedisForAction(resourceId, ttl) {
 }
 
 /**
+ * Unlocks the specified lock
+ * when the callback returns
  *
  * @param {Object} lock
  * @param {string} resourceId
- * @param {Function} cb
+ * @param {Function} cb Must return a promise
  * @returns {Promise}
  */
 function unlockWhenReady(lock, resourceId, cb) {
@@ -62,6 +66,7 @@ function unlockWhenReady(lock, resourceId, cb) {
 }
 
 /**
+ * Gets the value of the specified id in redis
  *
  * @param {string} id
  * @returns {Promise}
@@ -84,6 +89,7 @@ function setState(action, state, expire) {
 }
 
 /**
+ * Waits an amount of time, then runs the callback
  *
  * @param {Function} cb
  * @param {number} ms
@@ -140,9 +146,11 @@ function applyLock(action, cb) {
 }
 
 /**
+ * Saves both the redis and redlock instance
+ * into the module
  *
- * @param {Object} instance
- * @returns {Object}
+ * @param {Object} instance Redis instance
+ * @returns {Object} Redlock instance
  */
 function setup(instance) {
   if (!instance) return emptyModule;
