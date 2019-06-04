@@ -23,10 +23,10 @@ const Redlock = require('redlock'),
     // see https://www.awsarchitectureblog.com/2015/03/backoff.html
     retryJitter: 200 // time in ms
   },
-  action_retry_total = 5;
+  actionRetryTotal = 5;
 
 let log = require('../services/log').setup({ file: __filename }),
-  action_retry_count = 0;
+  actionRetryCount = 0;
 
 /**
  * Adds a lock to redis with the given id
@@ -131,9 +131,9 @@ function applyLock(action, cb) {
         .then(lock => unlockWhenReady(lock, resourceId, cb))
         .then(() => setState(action, STATE.FINISHED, KEY_TTL))
         .catch(() => {
-          action_retry_count++;
+          actionRetryCount++;
 
-          if (action_retry_count === action_retry_total) {
+          if (actionRetryCount >= actionRetryTotal) {
             log('error', `Action "${action}" could not be executed`);
             return setState(action, STATE.FINISHED, KEY_TTL);
           }
