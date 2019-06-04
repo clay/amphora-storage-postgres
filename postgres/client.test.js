@@ -566,6 +566,27 @@ describe('postgres/client', () => {
         expect(data).toEqual(data);
       });
     });
+
+    test('inserts a row with a column for site id', () => {
+      const key = 'nymag.com/_pages/sample-article',
+        tableName = 'pages',
+        putData = { data, siteSlug: 'nymag' };
+
+      client.setClient(knex);
+
+      return client.put(key, putData).then((data) => {
+        expect(table.mock.calls.length).toBe(1);
+        expect(table.mock.calls[0][0]).toBe(tableName);
+        expect(insert.mock.calls.length).toBe(1);
+        expect(insert.mock.calls[0][0]).toEqual({ id: key, data, site_id: 'nymag' });
+        expect(queryBuilder.mock.calls.length).toBe(1);
+        expect(update.mock.calls.length).toBe(1);
+        expect(raw.mock.calls.length).toBe(1);
+        expect(raw.mock.calls[0][0]).toBe('? ON CONFLICT (id) DO ? returning *');
+        expect(raw.mock.calls[0][1]).toEqual(['insert sql', 'update sql']);
+        expect(putData.data).toEqual(data);
+      });
+    });
   });
 
   describe('putMeta', () => {
@@ -674,11 +695,11 @@ describe('postgres/client', () => {
         ops = [
           {
             key: 'nymag.com/_uris/someinstance',
-            value: 'nymag.com/_pages/someinstance'
+            value: { data: 'nymag.com/_pages/someinstance', siteSlug: 'nymag' }
           },
           {
             key: 'nymag.com/_uris/someotherinstance',
-            value: 'nymag.com/_pages/someotherinstance'
+            value: { data: 'nymag.com/_pages/someotherinstance', siteSlug: 'nymag' }
           }
         ];
 
@@ -694,7 +715,7 @@ describe('postgres/client', () => {
 
         for (let index = 0; index < results.length; index++) {
           expect(table.mock.calls[index][0]).toBe('uris');
-          expect(insert.mock.calls[index][0]).toEqual({ id: ops[index].key, data: results[index], url: decode(ops[index].key.split('/_uris/').pop()) });
+          expect(insert.mock.calls[index][0]).toEqual({ id: ops[index].key, data: results[index], url: decode(ops[index].key.split('/_uris/').pop()), site_id: 'nymag' });
           expect(raw.mock.calls[index][0]).toBe('? ON CONFLICT (id) DO ? returning *');
           expect(raw.mock.calls[index][1]).toEqual(['insert sql', 'update sql']);
         }
