@@ -5,7 +5,7 @@ const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES
   { parseOrNot, wrapInObject, decode } = require('../services/utils'),
   { findSchemaAndTable, wrapJSONStringInObject } = require('../services/utils'),
   knexLib = require('knex'),
-  { isList, isUri, isUser, getPrefix } = require('clayutils'),
+  { isList, isUri, isPage } = require('clayutils'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
 var knex, log = require('../services/log').setup({ file: __filename });
@@ -131,15 +131,16 @@ function columnToValueMap(column, value, obj = {}) {
 function put(key, value) {
   const { schema, table } = findSchemaAndTable(key),
     map = columnToValueMap('id', key), // create the value map
+    isPublicEntity = isPage(key) || isList(key) || isUri(key),
     parsedValue = parseOrNot(value);
 
-  if (!isUser(key)) {
+  if (isPublicEntity && parsedValue.siteSlug) {
     // add site id column to map
-    columnToValueMap('site_id', getPrefix(key), map);
+    columnToValueMap('site_id', parsedValue.siteSlug, map);
   }
 
   // add data to the map
-  columnToValueMap('data', wrapInObject(key, parsedValue), map);
+  columnToValueMap('data', wrapInObject(key, parsedValue.data), map);
 
   let url;
 
@@ -212,15 +213,23 @@ function del(key) {
  * @param  {[type]} ops [description]
  * @return {[type]}     [description]
  */
+/* eslint complexity: 0 */
 function batch(ops) {
   var commands = [], url;
 
-  for (let i = 0; i < ops.length; i++) {
+  for (let i = 0, opsLength = ops.length; i < opsLength; i++) {
     let { key, value } = ops[i],
       { table, schema } = findSchemaAndTable(key),
-      map = columnToValueMap('id', key);
+      map = columnToValueMap('id', key),
+      isPublicEntity = isPage(key) || isList(key) || isUri(key),
+      parsedValue = isPublicEntity ? parseOrNot(value) : { data: value };
 
-    columnToValueMap('data', wrapJSONStringInObject(key, value), map);
+    if (isPublicEntity && parsedValue.siteSlug) {
+      // add site id column to map
+      columnToValueMap('site_id', parsedValue.siteSlug, map);
+    }
+
+    columnToValueMap('data', wrapJSONStringInObject(key, parsedValue.data), map);
 
     // add url column to map if putting a uri
     if (isUri(key)) {
