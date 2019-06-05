@@ -37,35 +37,35 @@ let log = require('../services/log').setup({ file: __filename }),
   actionRetryCount = 0;
 
 /**
- * Adds a lock to redis with the given id
+ * Adds a lock to redis with the given lockName
  * for a determined period of time
  *
- * @param {string} resourceId
+ * @param {string} lockName
  * @param {number} ttl
  * @returns {Promise}
  */
-function lockRedisForAction(resourceId, ttl) {
-  log('trace', `Trying to lock redis for resource id ${resourceId}`, {
-    resourceId,
+function addLock(lockName, ttl) {
+  log('trace', `Trying to lock redis for resource id ${lockName}`, {
+    lockName,
     processId: process.pid
   });
-  return module.exports.redlock.lock(resourceId, ttl);
+  return module.exports.redlock.lock(lockName, ttl);
 }
 
 /**
- * Unlocks the specified lock
+ * Removes the specified lock
  * when the callback returns
  *
  * @param {Object} lock
- * @param {string} resourceId
+ * @param {string} lockName
  * @param {Function} cb Must return a promise
  * @returns {Promise}
  */
-function unlockWhenReady(lock, resourceId, cb) {
+function removeLockWhenReady(lock, lockName, cb) {
   return cb().then(result =>
     module.exports.redlock.unlock(lock).then(() => {
-      log('trace', `Releasing lock for resource id ${resourceId}`, {
-        resourceId,
+      log('trace', `Releasing lock for resource id ${lockName}`, {
+        lockName,
         processId: process.pid
       });
       return result;
@@ -74,25 +74,26 @@ function unlockWhenReady(lock, resourceId, cb) {
 }
 
 /**
- * Gets the value of the specified id in redis
+ * Gets the value of the specified key in redis
  *
- * @param {string} id
+ * @param {string} key
  * @returns {Promise}
  */
-function getFromState(id) {
-  return module.exports.redis.getAsync(id);
+function getState(key) {
+  return module.exports.redis.getAsync(key);
 }
 
 /**
- *
- * @param {string} action
- * @param {string} state
- * @param {number} expire
+ * Sets a key-value pair into redis.
+ * This key will have an expire time if specified
+ * @param {string} key
+ * @param {string} value
+ * @param {number} expireTime
  * @returns {Promise}
  */
-function setState(action, state, expire) {
-  return module.exports.redis.setAsync(action, state).then(() => {
-    if (expire) return module.exports.redis.expire(action, expire);
+function setState(key, value, expireTime) {
+  return module.exports.redis.setAsync(key, value).then(() => {
+    if (expireTime) return module.exports.redis.expire(key, expireTime);
   });
 }
 
@@ -114,9 +115,9 @@ function sleepAndRun(cb, ms = 1000) {
  * @returns {Promise}
  */
 function applyLock(action, cb) {
-  const resourceId = `${action}-lock`;
+  const lockName = `${action}-lock`;
 
-  return getFromState(action).then(state => {
+  return getState(action).then(state => {
     /**
      * If it's ONGOING, just re-run this function after a while
      * to see if the state changed.
@@ -126,15 +127,15 @@ function applyLock(action, cb) {
     }
 
     if (!state || state === STATE.RETRY)
-      return startLocking(action, resourceId, cb)
+      return lockAndExecute(action, lockName, cb)
         .catch(() => retryLocking(action, cb));
   });
 }
 
-function startLocking(action, resourceId, cb) {
+function lockAndExecute(action, lockName, cb) {
   return setState(action, STATE.ONGOING)
-    .then(() => lockRedisForAction(resourceId, LOCK_TTL))
-    .then(lock => unlockWhenReady(lock, resourceId, cb))
+    .then(() => addLock(lockName, LOCK_TTL))
+    .then(lock => removeLockWhenReady(lock, lockName, cb))
     .then(() => setState(action, STATE.FINISHED, KEY_TTL));
 }
 
