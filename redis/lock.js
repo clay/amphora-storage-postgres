@@ -23,6 +23,14 @@ const Redlock = require('redlock'),
     // see https://www.awsarchitectureblog.com/2015/03/backoff.html
     retryJitter: 200 // time in ms
   },
+  STATE = {
+    ONGOING: 'ON-GOING',
+    RETRY: 'RETRY',
+    FINISHED: 'FINISHED'
+  },
+  RETRY_TIME = 1500, // ms
+  KEY_TTL = 10 * 60, // secs
+  LOCK_TTL = 5000, // ms
   actionRetryTotal = 5;
 
 let log = require('../services/log').setup({ file: __filename }),
@@ -106,15 +114,7 @@ function sleepAndRun(cb, ms = 1000) {
  * @returns {Promise}
  */
 function applyLock(action, cb) {
-  const resourceId = `${action}-lock`,
-    STATE = {
-      ONGOING: 'ON-GOING',
-      RETRY: 'RETRY',
-      FINISHED: 'FINISHED'
-    },
-    RETRY_TIME = 1500, // ms
-    KEY_TTL = 10 * 60, // secs
-    LOCK_TTL = 5000; // ms
+  const resourceId = `${action}-lock`;
 
   return getFromState(action).then(state => {
     /**
@@ -126,23 +126,28 @@ function applyLock(action, cb) {
     }
 
     if (!state || state === STATE.RETRY)
-      return setState(action, STATE.ONGOING)
-        .then(() => lockRedisForAction(resourceId, LOCK_TTL))
-        .then(lock => unlockWhenReady(lock, resourceId, cb))
-        .then(() => setState(action, STATE.FINISHED, KEY_TTL))
-        .catch(() => {
-          actionRetryCount++;
-
-          if (actionRetryCount >= actionRetryTotal) {
-            log('error', `Action "${action}" could not be executed`);
-            return setState(action, STATE.FINISHED, KEY_TTL);
-          }
-
-          return setState(action, STATE.RETRY).then(() =>
-            sleepAndRun(() => applyLock(action, cb), RETRY_TIME)
-          );
-        });
+      return startLocking(action, resourceId, cb)
+        .catch(() => retryLocking(action, cb));
   });
+}
+
+function startLocking(action, resourceId, cb) {
+  return setState(action, STATE.ONGOING)
+    .then(() => lockRedisForAction(resourceId, LOCK_TTL))
+    .then(lock => unlockWhenReady(lock, resourceId, cb))
+    .then(() => setState(action, STATE.FINISHED, KEY_TTL));
+}
+
+function retryLocking(action, cb) {
+  actionRetryCount++;
+
+  if (actionRetryCount >= actionRetryTotal) {
+    log('error', `Action "${action}" could not be executed`);
+    return setState(action, STATE.FINISHED, KEY_TTL);
+  }
+
+  return setState(action, STATE.RETRY)
+    .then(() => sleepAndRun(() => applyLock(action, cb), RETRY_TIME));
 }
 
 /**
