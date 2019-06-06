@@ -73,12 +73,13 @@ describe('lock', () => {
 
   describe('removeLockWhenReady', () => {
     const lockName = 'someName',
-      fakeLock = {};
+      fakeLock = {},
+      promiseReturnValue = 'some/value';
 
     let somePromise;
 
     beforeEach(() => {
-      somePromise = jest.fn().mockResolvedValue('callback return value');
+      somePromise = jest.fn().mockResolvedValue(promiseReturnValue);
       lockModule.redlock.unlock.mockResolvedValue();
     });
 
@@ -93,7 +94,7 @@ describe('lock', () => {
     });
 
     test('Redis unlock is not called if callback fails', () => {
-      somePromise = jest.fn().mockRejectedValue('callback return value');
+      somePromise = jest.fn().mockRejectedValue();
 
       return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
         .catch(() => expect(lockModule.redlock.unlock).not.toBeCalled());
@@ -105,12 +106,13 @@ describe('lock', () => {
           expect(fakeLog).toBeCalledWith(
             'trace',
             `Releasing lock for resource id ${lockName}`,
-            {
-              lockName,
-              processId: process.pid
-            }
+            { lockName, processId: process.pid }
           ));
     });
-    test('Returns whatever the callback returns', () => { });
+
+    test('Returns whatever the callback returns', () => {
+      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+        .then(result => expect(result).toBe(promiseReturnValue));
+    });
   });
 });
