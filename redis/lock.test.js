@@ -1,7 +1,5 @@
 'use strict';
 
-// module.exports._addLock = addLock;
-// module.exports._removeLockWhenReady = removeLockWhenReady;
 // module.exports._sleepAndRun = sleepAndRun;
 // module.exports._lockAndExecute = lockAndExecute;
 // module.exports._retryLocking = retryLocking;
@@ -15,6 +13,7 @@ const lockModule = require('./lock'),
   fakeGenericErrorLog = jest.fn(),
   fakeLog = jest.fn(),
   fakeRedlockInstance = {
+    lock: jest.fn(),
     unlock: jest.fn()
   },
   redlockModule = jest.genMockFromModule('redlock');
@@ -113,6 +112,28 @@ describe('lock', () => {
     test('Returns whatever the callback returns', () => {
       return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
         .then(result => expect(result).toBe(promiseReturnValue));
+    });
+  });
+
+  describe('addLock', () => {
+    const lockName = 'some-name',
+      ttl = 2000;
+
+    test('Should call redlock.lock', () => {
+      lockModule.redlock.lock.mockResolvedValue();
+
+      return lockModule._addLock(lockName, ttl).then(() => {
+        expect(lockModule.redlock.lock).toBeCalledWith(lockName, ttl);
+      });
+    });
+
+    test('Message is logged when addLock is called', () => {
+      return lockModule._addLock(lockName, ttl).then(() =>
+        expect(fakeLog).toBeCalledWith(
+          'trace',
+          `Trying to lock redis for resource id ${lockName}`,
+          { lockName, processId: process.pid }
+        ));
     });
   });
 });
