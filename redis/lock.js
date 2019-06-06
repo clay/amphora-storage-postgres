@@ -1,7 +1,6 @@
 'use strict';
 
-const Redlock = require('redlock'),
-  { logGenericError } = require('../services/errors'),
+const { logGenericError } = require('../services/errors'),
   emptyModule = {
     lock: () => Promise.resolve(),
     unlock: () => Promise.resolve()
@@ -34,6 +33,8 @@ const Redlock = require('redlock'),
   actionRetryTotal = 5;
 
 let log = require('../services/log').setup({ file: __filename }),
+  Redlock = require('redlock'),
+  _logGenericError = logGenericError(__filename),
   actionRetryCount = 0;
 
 /**
@@ -58,19 +59,20 @@ function addLock(lockName, ttl) {
  *
  * @param {Object} lock
  * @param {string} lockName
- * @param {Function} cb Must return a promise
+ * @param {Function} promise
  * @returns {Promise}
  */
-function removeLockWhenReady(lock, lockName, cb) {
-  return cb().then(result =>
-    module.exports.redlock.unlock(lock).then(() => {
+function removeLockWhenReady(lock, lockName, promise) {
+  return promise().then(result => {
+    return module.exports.redlock.unlock(lock).then(() => {
       log('trace', `Releasing lock for resource id ${lockName}`, {
         lockName,
         processId: process.pid
       });
+
       return result;
-    })
-  );
+    });
+  });
 }
 
 /**
@@ -163,7 +165,7 @@ function setupRedlock(instance) {
 
   const redlock = new Redlock([instance], CONFIG);
 
-  redlock.on('clientError', logGenericError(__filename));
+  redlock.on('clientError', _logGenericError);
 
   module.exports.redis = instance;
   module.exports.redlock = redlock;
@@ -171,8 +173,19 @@ function setupRedlock(instance) {
   return redlock;
 }
 
-module.exports.redis = {};
+module.exports.redis;
 module.exports.redlock;
-
 module.exports.setupRedlock = setupRedlock;
 module.exports.applyLock = applyLock;
+
+module.exports.stubRedlockModule = mock => Redlock = mock;
+module.exports.stubLogGenericError = mock => _logGenericError = mock;
+module.exports.stubLog = mock => log = mock;
+
+module.exports._addLock = addLock;
+module.exports._removeLockWhenReady = removeLockWhenReady;
+module.exports._getState = getState;
+module.exports._setState = setState;
+module.exports._sleepAndRun = sleepAndRun;
+module.exports._lockAndExecute = lockAndExecute;
+module.exports._retryLocking = retryLocking;
