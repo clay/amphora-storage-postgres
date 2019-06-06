@@ -136,4 +136,14 @@ describe('lock', () => {
         ));
     });
   });
+
+  describe('sleepAndRun', () => {
+    test('Callback is called', () => {
+      const somePromise = jest.fn().mockResolvedValue('value');
+
+      return lockModule._sleepAndRun(somePromise, 250).then(() => {
+        expect(somePromise).toBeCalled();
+      });
+    });
+  });
 });

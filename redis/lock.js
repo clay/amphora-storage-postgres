@@ -1,6 +1,7 @@
 'use strict';
 
-const { logGenericError } = require('../services/errors'),
+const Promise = require('bluebird'),
+  { logGenericError } = require('../services/errors'),
   emptyModule = {
     lock: () => Promise.resolve(),
     unlock: () => Promise.resolve()
@@ -107,7 +108,7 @@ function setState(key, value, expireTime) {
  * @returns {Promise}
  */
 function sleepAndRun(cb, ms = 1000) {
-  return new Promise(resolve => setTimeout(() => cb().then(resolve), ms));
+  return Promise.delay(ms).then(cb);
 }
 
 /**
