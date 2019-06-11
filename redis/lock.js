@@ -115,7 +115,6 @@ function delay(ms = RETRY_TIME) {
  * apply the lock again for a certain
  * amount of times.
  *
- *
  * @param {string} action
  * @param {Function} cb
  * @returns {Promise}
