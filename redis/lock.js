@@ -2,10 +2,6 @@
 
 const Promise = require('bluebird'),
   { logGenericError } = require('../services/errors'),
-  emptyModule = {
-    lock: () => Promise.resolve(),
-    unlock: () => Promise.resolve()
-  },
   CONFIG = {
     // the expected clock drift; for more details
     // see http://redis.io/topics/distlock
@@ -165,8 +161,6 @@ function retryLocking(action, cb) {
  * @returns {Object} Redlock instance
  */
 function setupRedlock(instance) {
-  if (!instance) return emptyModule;
-
   const redlock = new Redlock([instance], CONFIG);
 
   redlock.on('clientError', _logGenericError);
