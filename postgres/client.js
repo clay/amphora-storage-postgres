@@ -140,7 +140,7 @@ function put(key, value) {
   }
 
   // add data to the map
-  columnToValueMap('data', wrapInObject(key, parsedValue.data), map);
+  columnToValueMap('data', wrapInObject(key, parsedValue.data || parsedValue), map);
 
   let url;
 
