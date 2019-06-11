@@ -1,6 +1,5 @@
 'use strict';
 
-// module.exports._sleepAndRun = sleepAndRun;
 // module.exports._lockAndExecute = lockAndExecute;
 // module.exports._retryLocking = retryLocking;
 
@@ -13,8 +12,8 @@ const lockModule = require('./lock'),
   fakeGenericErrorLog = jest.fn(),
   fakeLog = jest.fn(),
   fakeRedlockInstance = {
-    lock: jest.fn(),
-    unlock: jest.fn()
+    lock: jest.fn().mockResolvedValue(),
+    unlock: jest.fn().mockResolvedValue()
   },
   redlockModule = jest.genMockFromModule('redlock');
 
@@ -23,6 +22,7 @@ describe('lock', () => {
     lockModule.stubLogGenericError(fakeGenericErrorLog);
     lockModule.stubLog(fakeLog);
     lockModule.redlock = fakeRedlockInstance;
+    lockModule.redis = REDIS_CLIENT;
   });
 
   afterEach(() => {
@@ -44,7 +44,7 @@ describe('lock', () => {
     test('It should call redis getAsync', () => {
       const key = 'some/key';
 
-      return lockModule._getState(key)
+      return lockModule.getState(key)
         .then(() =>
           expect(REDIS_CLIENT.getAsync).toBeCalledWith(key));
     });
@@ -56,13 +56,13 @@ describe('lock', () => {
       ttl = 2000;
 
     test('It should call redis setAsync', () => {
-      return lockModule._setState(key, value)
+      return lockModule.setState(key, value)
         .then(() =>
           expect(REDIS_CLIENT.setAsync).toBeCalledWith(key, value));
     });
 
     test('It should call redis expire if a TTL is passed', () => {
-      return lockModule._setState(key, value, ttl)
+      return lockModule.setState(key, value, ttl)
         .then(() => {
           expect(REDIS_CLIENT.setAsync).toBeCalledWith(key, value);
           expect(REDIS_CLIENT.expire).toBeCalledWith(key, ttl);
@@ -137,12 +137,20 @@ describe('lock', () => {
     });
   });
 
-  describe('sleepAndRun', () => {
-    test('Callback is called', () => {
-      const somePromise = jest.fn().mockResolvedValue('value');
+  describe('retryLocking', () => {
+    const action = 'some-action',
+      callback = jest.fn().mockResolvedValue();
 
-      return lockModule._sleepAndRun(somePromise, 250).then(() => {
-        expect(somePromise).toBeCalled();
+    test('Sets the state to RETRY if the retries are not over', () => {
+      return lockModule._retryLocking(action, callback).then(() => {
+        expect(REDIS_CLIENT.setAsync.mock.calls[0][1]).toBe('RETRY');
+      });
+    });
+
+    test('Sets the state to FINISHED if the retries are over', () => {
+      lockModule.stubActionRetryTotal(2);
+      return lockModule._retryLocking(action, callback).then(() => {
+        expect(REDIS_CLIENT.setAsync.mock.calls[0][1]).toBe('FINISHED');
       });
     });
   });

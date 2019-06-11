@@ -30,13 +30,13 @@ const Promise = require('bluebird'),
   },
   RETRY_TIME = 1500, // ms
   KEY_TTL = 10 * 60, // secs
-  LOCK_TTL = 5000, // ms
-  actionRetryTotal = 5;
+  LOCK_TTL = 5000; // ms
 
 let log = require('../services/log').setup({ file: __filename }),
   Redlock = require('redlock'),
   _logGenericError = logGenericError(__filename),
-  actionRetryCount = 0;
+  actionRetryCount = 0,
+  actionRetryTotal = 5;
 
 /**
  * Adds a lock to redis with the given lockName
@@ -103,12 +103,11 @@ function setState(key, value, expireTime) {
 /**
  * Waits an amount of time, then runs the callback
  *
- * @param {Function} cb
  * @param {number} ms
  * @returns {Promise}
  */
-function sleepAndRun(cb, ms = 1000) {
-  return Promise.delay(ms).then(cb);
+function delay(ms = RETRY_TIME) {
+  return Promise.delay(ms);
 }
 
 /**
@@ -121,12 +120,15 @@ function applyLock(action, cb) {
   const lockName = `${action}-lock`;
 
   return getState(action).then(state => {
+    if (state === STATE.FINISHED) return;
+
     /**
      * If it's ONGOING, just re-run this function after a while
      * to see if the state changed.
      */
     if (state === STATE.ONGOING) {
-      return sleepAndRun(() => applyLock(action, cb), RETRY_TIME);
+      return delay()
+        .then(() => applyLock(action, cb));
     }
 
     if (!state || state === STATE.RETRY)
@@ -151,7 +153,8 @@ function retryLocking(action, cb) {
   }
 
   return setState(action, STATE.RETRY)
-    .then(() => sleepAndRun(() => applyLock(action, cb), RETRY_TIME));
+    .then(delay)
+    .then(() => applyLock(action, cb));
 }
 
 /**
@@ -182,11 +185,12 @@ module.exports.applyLock = applyLock;
 module.exports.stubRedlockModule = mock => Redlock = mock;
 module.exports.stubLogGenericError = mock => _logGenericError = mock;
 module.exports.stubLog = mock => log = mock;
+module.exports.stubActionRetryTotal = mock => actionRetryTotal = mock;
 
 module.exports._addLock = addLock;
 module.exports._removeLockWhenReady = removeLockWhenReady;
-module.exports._getState = getState;
-module.exports._setState = setState;
-module.exports._sleepAndRun = sleepAndRun;
+module.exports.getState = getState;
+module.exports.setState = setState;
+module.exports.delay = delay;
 module.exports._lockAndExecute = lockAndExecute;
 module.exports._retryLocking = retryLocking;
