@@ -107,6 +107,14 @@ function delay(ms = RETRY_TIME) {
 }
 
 /**
+ * Implements the lock on redis.
+ * Delays further retries while the
+ * callback is running.
+ *
+ * If something fails, it tries to
+ * apply the lock again for a certain
+ * amount of times.
+ *
  *
  * @param {string} action
  * @param {Function} cb
@@ -133,6 +141,15 @@ function applyLock(action, cb) {
   });
 }
 
+/**
+ * Sets the lock on redis and removes it
+ * when the callback is done
+ *
+ * @param {string} action
+ * @param {string} lockName
+ * @param {Function} cb
+ * @returns {Promise}
+ */
 function lockAndExecute(action, lockName, cb) {
   return setState(action, STATE.ONGOING)
     .then(() => addLock(lockName, LOCK_TTL))
@@ -140,6 +157,15 @@ function lockAndExecute(action, lockName, cb) {
     .then(() => setState(action, STATE.FINISHED, KEY_TTL));
 }
 
+/**
+ * Sets the state to RETRY and runs the lock again.
+ * After a number of retries, it gives up and sets the
+ * state to FINISHED.
+ *
+ * @param {string} action
+ * @param {Function} cb
+ * @returns {Promise}
+ */
 function retryLocking(action, cb) {
   actionRetryCount++;
 
