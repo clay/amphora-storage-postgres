@@ -12,12 +12,17 @@ const lockModule = require('./lock'),
     lock: jest.fn().mockResolvedValue(),
     unlock: jest.fn().mockResolvedValue()
   },
-  redlockModule = jest.genMockFromModule('redlock');
+  redlockModule = jest.genMockFromModule('redlock'),
+  bluebirdModule = {
+    delay: jest.fn().mockResolvedValue()
+  };
 
-describe('lock', () => {
+describe('redis/lock', () => {
   beforeEach(() => {
+    lockModule.stubActionRetryTotal(5);
     lockModule.stubLogGenericError(fakeGenericErrorLog);
     lockModule.stubLog(fakeLog);
+    lockModule.stubBluebirdModule(bluebirdModule);
     lockModule.redlock = fakeRedlockInstance;
     lockModule.redis = REDIS_CLIENT;
   });
@@ -181,6 +186,38 @@ describe('lock', () => {
     test('Sets the stage to finished with a TTL if everything succeeds', () => {
       return lockModule.lockAndExecute(action, lockName, somePromise).then(() => {
         expect(REDIS_CLIENT.setAsync.mock.calls[1][1]).toBe('FINISHED');
+      });
+    });
+  });
+
+  describe('applyLock', () => {
+    const action = 'some-action',
+      callback = jest.fn().mockResolvedValue();
+
+    test('When state is ONGOING, it should call delay', () => {
+      REDIS_CLIENT.getAsync.mockResolvedValueOnce('ON-GOING');
+      REDIS_CLIENT.getAsync.mockResolvedValueOnce('FINISHED');
+
+      return lockModule.applyLock(action, callback).then(() => {
+        expect(bluebirdModule.delay).toBeCalledWith(1500);
+      });
+    });
+
+    test.each([undefined, 'RETRY'])('It should call retryLocking when state is %s and lockAndExecute fails', state => {
+      REDIS_CLIENT.getAsync.mockResolvedValueOnce(state);
+      REDIS_CLIENT.setAsync.mockRejectedValue('Not found');
+
+      return lockModule.applyLock(action, callback).catch(() => {
+        expect(REDIS_CLIENT.setAsync).toBeCalledWith(action, 'RETRY');
+      });
+    });
+
+    test('It should not run anything if the state has an unknown value', () => {
+      REDIS_CLIENT.getAsync.mockResolvedValueOnce('some-random-state');
+
+      return lockModule.applyLock(action, callback).then(() => {
+        expect(REDIS_CLIENT.setAsync).not.toBeCalled();
+        expect(REDIS_CLIENT.getAsync).toBeCalledTimes(1);
       });
     });
   });

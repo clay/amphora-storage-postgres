@@ -1,7 +1,6 @@
 'use strict';
 
-const Promise = require('bluebird'),
-  { logGenericError } = require('../services/errors'),
+const { logGenericError } = require('../services/errors'),
   CONFIG = {
     // the expected clock drift; for more details
     // see http://redis.io/topics/distlock
@@ -30,6 +29,7 @@ const Promise = require('bluebird'),
 
 let log = require('../services/log').setup({ file: __filename }),
   Redlock = require('redlock'),
+  Promise = require('bluebird'),
   _logGenericError = logGenericError(__filename),
   actionRetryCount = 0,
   actionRetryTotal = 5;
@@ -97,7 +97,7 @@ function setState(key, value, expireTime) {
 }
 
 /**
- * Waits an amount of time, then runs the callback
+ * Waits an amount of time
  *
  * @param {number} ms
  * @returns {Promise}
@@ -180,6 +180,7 @@ module.exports.stubRedlockModule = mock => Redlock = mock;
 module.exports.stubLogGenericError = mock => _logGenericError = mock;
 module.exports.stubLog = mock => log = mock;
 module.exports.stubActionRetryTotal = mock => actionRetryTotal = mock;
+module.exports.stubBluebirdModule = mock => Promise = mock;
 
 module.exports.addLock = addLock;
 module.exports.removeLockWhenReady = removeLockWhenReady;
