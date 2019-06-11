@@ -1,8 +1,5 @@
 'use strict';
 
-// module.exports._lockAndExecute = lockAndExecute;
-// module.exports._retryLocking = retryLocking;
-
 const lockModule = require('./lock'),
   REDIS_CLIENT = {
     getAsync: jest.fn().mockResolvedValue(),
@@ -83,24 +80,24 @@ describe('lock', () => {
     });
 
     test('Callback is called', () => {
-      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+      return lockModule.removeLockWhenReady(fakeLock, lockName, somePromise)
         .then(() => expect(somePromise).toBeCalled());
     });
 
     test('Redis unlock is called if callback succeeds', () => {
-      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+      return lockModule.removeLockWhenReady(fakeLock, lockName, somePromise)
         .then(() => expect(lockModule.redlock.unlock).toBeCalled());
     });
 
     test('Redis unlock is not called if callback fails', () => {
       somePromise = jest.fn().mockRejectedValue();
 
-      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+      return lockModule.removeLockWhenReady(fakeLock, lockName, somePromise)
         .catch(() => expect(lockModule.redlock.unlock).not.toBeCalled());
     });
 
     test('Lock release is logged if unlock succeeds', () => {
-      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+      return lockModule.removeLockWhenReady(fakeLock, lockName, somePromise)
         .then(() =>
           expect(fakeLog).toBeCalledWith(
             'trace',
@@ -110,7 +107,7 @@ describe('lock', () => {
     });
 
     test('Returns whatever the callback returns', () => {
-      return lockModule._removeLockWhenReady(fakeLock, lockName, somePromise)
+      return lockModule.removeLockWhenReady(fakeLock, lockName, somePromise)
         .then(result => expect(result).toBe(promiseReturnValue));
     });
   });
@@ -122,13 +119,13 @@ describe('lock', () => {
     test('Should call redlock.lock', () => {
       lockModule.redlock.lock.mockResolvedValue();
 
-      return lockModule._addLock(lockName, ttl).then(() => {
+      return lockModule.addLock(lockName, ttl).then(() => {
         expect(lockModule.redlock.lock).toBeCalledWith(lockName, ttl);
       });
     });
 
     test('Message is logged when addLock is called', () => {
-      return lockModule._addLock(lockName, ttl).then(() =>
+      return lockModule.addLock(lockName, ttl).then(() =>
         expect(fakeLog).toBeCalledWith(
           'trace',
           `Trying to lock redis for resource id ${lockName}`,
@@ -142,15 +139,48 @@ describe('lock', () => {
       callback = jest.fn().mockResolvedValue();
 
     test('Sets the state to RETRY if the retries are not over', () => {
-      return lockModule._retryLocking(action, callback).then(() => {
+      return lockModule.retryLocking(action, callback).then(() => {
         expect(REDIS_CLIENT.setAsync.mock.calls[0][1]).toBe('RETRY');
       });
     });
 
     test('Sets the state to FINISHED if the retries are over', () => {
       lockModule.stubActionRetryTotal(2);
-      return lockModule._retryLocking(action, callback).then(() => {
+      return lockModule.retryLocking(action, callback).then(() => {
         expect(REDIS_CLIENT.setAsync.mock.calls[0][1]).toBe('FINISHED');
+      });
+    });
+  });
+
+  describe('lockAndExecute', () => {
+    const action = 'some-action',
+      lockName = 'some-action-lock',
+      somePromise = jest.fn().mockResolvedValue();
+
+    test('Sets the state to ongoing', () => {
+      return lockModule.lockAndExecute(action, lockName, somePromise).then(() => {
+        expect(REDIS_CLIENT.setAsync.mock.calls[0][1]).toBe('ON-GOING');
+      });
+    });
+
+    test('Adds the lock', () => {
+      return lockModule.lockAndExecute(action, lockName, somePromise).then(() => {
+        expect(fakeRedlockInstance.lock.mock.calls[0][0]).toBe(lockName);
+      });
+    });
+
+    test('Removes the lock', () => {
+      const someLock = { name: 'lock-name' };
+
+      fakeRedlockInstance.lock.mockResolvedValue(someLock);
+      return lockModule.lockAndExecute(action, lockName, somePromise).then(() => {
+        expect(fakeRedlockInstance.unlock.mock.calls[0][0]).toBe(someLock);
+      });
+    });
+
+    test('Sets the stage to finished with a TTL if everything succeeds', () => {
+      return lockModule.lockAndExecute(action, lockName, somePromise).then(() => {
+        expect(REDIS_CLIENT.setAsync.mock.calls[1][1]).toBe('FINISHED');
       });
     });
   });

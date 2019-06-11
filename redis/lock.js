@@ -187,10 +187,10 @@ module.exports.stubLogGenericError = mock => _logGenericError = mock;
 module.exports.stubLog = mock => log = mock;
 module.exports.stubActionRetryTotal = mock => actionRetryTotal = mock;
 
-module.exports._addLock = addLock;
-module.exports._removeLockWhenReady = removeLockWhenReady;
+module.exports.addLock = addLock;
+module.exports.removeLockWhenReady = removeLockWhenReady;
 module.exports.getState = getState;
 module.exports.setState = setState;
 module.exports.delay = delay;
-module.exports._lockAndExecute = lockAndExecute;
-module.exports._retryLocking = retryLocking;
+module.exports.lockAndExecute = lockAndExecute;
+module.exports.retryLocking = retryLocking;
