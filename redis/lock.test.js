@@ -13,16 +13,15 @@ const lockModule = require('./lock'),
     unlock: jest.fn().mockResolvedValue()
   },
   redlockModule = jest.genMockFromModule('redlock'),
-  bluebirdModule = {
-    delay: jest.fn().mockResolvedValue()
-  };
+  bluebird = require('bluebird');
+
+bluebird.delay = jest.fn().mockResolvedValue();
 
 describe('redis/lock', () => {
   beforeEach(() => {
     lockModule.stubActionRetryTotal(5);
     lockModule.stubLogGenericError(fakeGenericErrorLog);
     lockModule.stubLog(fakeLog);
-    lockModule.stubBluebirdModule(bluebirdModule);
     lockModule.redlock = fakeRedlockInstance;
     lockModule.redis = REDIS_CLIENT;
   });
@@ -199,7 +198,7 @@ describe('redis/lock', () => {
       REDIS_CLIENT.getAsync.mockResolvedValueOnce('FINISHED');
 
       return lockModule.applyLock(action, callback).then(() => {
-        expect(bluebirdModule.delay).toBeCalledWith(1500);
+        expect(bluebird.delay).toBeCalledWith(1500);
       });
     });
 
