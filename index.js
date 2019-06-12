@@ -6,6 +6,7 @@ module.exports.setup = require('./services/setup');
 module.exports.put = db.put;
 module.exports.get = db.get;
 module.exports.del = db.del;
+module.exports.applyLock = db.applyLock;
 module.exports.batch = db.batch;
 module.exports.putMeta = db.putMeta;
 module.exports.patchMeta = db.patchMeta;

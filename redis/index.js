@@ -4,7 +4,9 @@ const bluebird = require('bluebird'),
   Redis = require('ioredis'),
   { REDIS_URL, REDIS_HASH } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
-  { notFoundError, logGenericError } = require('../services/errors');
+  { notFoundError, logGenericError } = require('../services/errors'),
+  lock = require('./lock');
+
 var log = require('../services/log').setup({ file: __filename });
 
 /**
@@ -25,6 +27,8 @@ function createClient(testRedisUrl) {
   return new bluebird(resolve => {
     module.exports.client = bluebird.promisifyAll(new Redis(redisUrl));
     module.exports.client.on('error', logGenericError(__filename));
+
+    lock.setupRedlock(module.exports.client);
 
     resolve({ server: redisUrl });
   });
@@ -108,6 +112,7 @@ function del(key) {
 }
 
 module.exports.client = null;
+module.exports.applyLock = lock.applyLock;
 module.exports.createClient = createClient;
 module.exports.get = get;
 module.exports.put = put;
