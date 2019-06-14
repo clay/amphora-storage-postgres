@@ -605,6 +605,27 @@ describe('postgres/client', () => {
         expect(data).toEqual(data);
       });
     });
+
+    test('if uri is page, insert publication events dates', () => {
+      const key = 'nymag.com/_pages/sample-page',
+        meta = {
+          someText: '',
+          someOtherText: '',
+          firstPublishTime: '2019-06-14',
+          publishTime: '2019-06-14',
+          history: [{
+            action: 'unpublish',
+            timestamp: '2019-06-14'
+          }, {
+            action: 'archive',
+            timestamp: '2019-06-14'
+          }]
+        };
+
+      return client.putMeta(key, meta).then((data) => {
+        expect(data).toEqual(meta);
+      });
+    });
   });
 
   describe('batch', () => {
