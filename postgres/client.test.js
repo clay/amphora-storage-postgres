@@ -611,13 +611,43 @@ describe('postgres/client', () => {
         meta = {
           someText: '',
           someOtherText: '',
-          firstPublishTime: '2019-06-14',
-          publishTime: '2019-06-14',
           history: [{
             action: 'unpublish',
             timestamp: '2019-06-14'
           }, {
             action: 'archive',
+            timestamp: '2019-06-14'
+          }]
+        };
+
+      return client.putMeta(key, meta).then((data) => {
+        expect(data).toEqual(meta);
+      });
+    });
+
+    test('if uri is page and does not have history, insert without publication dates', () => {
+      const key = 'nymag.com/_pages/sample-page',
+        meta = {
+          someText: '',
+          someOtherText: '',
+          firstPublishTime: '2019-06-14',
+          publishTime: '2019-06-14'
+        };
+
+      return client.putMeta(key, meta).then((data) => {
+        expect(data).toEqual(meta);
+      });
+    });
+
+    test('if uri is page, but history does not have unpublish/archive events, insert without those dates', () => {
+      const key = 'nymag.com/_pages/sample-page',
+        meta = {
+          someText: '',
+          someOtherText: '',
+          firstPublishTime: '2019-06-14',
+          publishTime: '2019-06-14',
+          history: [{
+            action: 'create',
             timestamp: '2019-06-14'
           }]
         };

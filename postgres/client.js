@@ -305,8 +305,6 @@ function putMeta(key, value) {
       if (latestArchived.timestamp)
         columnToValueMap('archived_at', latestArchived.timestamp, map);
     }
-
-    console.log({map});
   }
 
   return onConflictPut(map, schema, table).then(() => map.meta);
