@@ -282,11 +282,11 @@ function putMeta(key, value) {
   columnToValueMap('meta', parsedValue, map);
 
   if (isPage(key)) {
-    // If value has first publish time add it to the map
+    // If value has first publish time, add it to the map
     if (parsedValue.firstPublishTime)
       columnToValueMap('published_at', parsedValue.firstPublishTime, map);
 
-    // If value has publish time add it as republished date
+    // If value has publish time, add it as republished date
     if (parsedValue.publishTime)
       columnToValueMap('republished_at', parsedValue.publishTime, map);
 
