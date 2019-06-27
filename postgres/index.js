@@ -25,7 +25,7 @@ function createRemainingTables() {
   for (let i = 0; i < DATA_STRUCTURES.length; i++) {
     let STRUCTURE = DATA_STRUCTURES[i];
 
-    if (STRUCTURE !== 'components' && STRUCTURE !== 'pages' && STRUCTURE !== 'layouts' && STRUCTURE !== 'uris') {
+    if (STRUCTURE !== 'components' && STRUCTURE !== 'pages' && STRUCTURE !== 'layouts') {
       promises.push(client.createTable(STRUCTURE));
     }
   }
@@ -59,24 +59,22 @@ function setup(testPostgresHost) {
   }
 
   return client.connect()
-    .then(() => {
-      return migrate(
-        {
-          database: POSTGRES_DB,
-          user: POSTGRES_USER,
-          password: POSTGRES_PASSWORD,
-          host: postgresHost,
-          port: POSTGRES_PORT
-        },
-        path.join(__dirname, '../services/migrations')
-      );
-    })
-    .then(() => {
-      log('info', 'Migrations Complete');
-    })
-    .then(() => createTables())
+    .then(() => client.createSchema('components'))
+    .then(() => client.createSchema('layouts'))
+    .then(createTables)
+    .then(() => migrate(
+      {
+        database: POSTGRES_DB,
+        user: POSTGRES_USER,
+        password: POSTGRES_PASSWORD,
+        host: postgresHost,
+        port: POSTGRES_PORT
+      },
+      path.join(__dirname, '../services/migrations')
+    ))
+    .then(() => log('info', 'Migrations Complete'))
     .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }))
-    .catch(logGenericError);
+    .catch(logGenericError(__filename));
 }
 
 module.exports.setup = setup;
