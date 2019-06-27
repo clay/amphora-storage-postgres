@@ -25,7 +25,7 @@ function createRemainingTables() {
   for (let i = 0; i < DATA_STRUCTURES.length; i++) {
     let STRUCTURE = DATA_STRUCTURES[i];
 
-    if (STRUCTURE !== 'components' && STRUCTURE !== 'pages' && STRUCTURE !== 'layouts' && STRUCTURE !== 'uris') {
+    if (STRUCTURE !== 'components' && STRUCTURE !== 'pages' && STRUCTURE !== 'layouts') {
       promises.push(client.createTable(STRUCTURE));
     }
   }
