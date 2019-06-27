@@ -292,12 +292,8 @@ function putMeta(key, value) {
 
     // If we have history data, then find the unpublish and archive events
     if (parsedValue.history && parsedValue.history.length) {
-      const latestUnpublish = parsedValue.history
-          .filter(event => event.action === 'unpublish')
-          .pop() || {},
-        latestArchived = parsedValue.history
-          .filter(event => event.action === 'archive')
-          .pop() || {};
+      const latestUnpublish = getLatestActionByName(parsedValue.history, 'unpublish'),
+        latestArchived = getLatestActionByName(parsedValue.history, 'archive');
 
       if (latestUnpublish.timestamp)
         columnToValueMap('unpublished_at', latestUnpublish.timestamp, map);
@@ -308,6 +304,18 @@ function putMeta(key, value) {
   }
 
   return onConflictPut(map, schema, table).then(() => map.meta);
+}
+
+/**
+ * Gets the latest entry in the history based on the action
+ * @param {Object[]} history
+ * @param {String} action
+ * @returns {Object}
+ */
+function getLatestActionByName(history, action) {
+  return history
+    .filter(event => event.action === action)
+    .pop() || {};
 }
 
 /**
