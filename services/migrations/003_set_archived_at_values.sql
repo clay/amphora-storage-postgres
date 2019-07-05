@@ -1,6 +1,3 @@
-ALTER TABLE IF EXISTS pages
-ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
-
 UPDATE pages
 SET archived_at = subquery.archive_date
 FROM (SELECT DISTINCT ON (id) id,

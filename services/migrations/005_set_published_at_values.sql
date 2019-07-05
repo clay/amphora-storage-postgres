@@ -1,6 +1,3 @@
-ALTER TABLE IF EXISTS pages
-ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
-
 UPDATE pages
 SET published_at = subquery.first_publish_time
 FROM (SELECT id, TO_TIMESTAMP(meta ->> 'firstPublishTime', 'YYYY-MM-DD HH24:MI:SSZ') as first_publish_time

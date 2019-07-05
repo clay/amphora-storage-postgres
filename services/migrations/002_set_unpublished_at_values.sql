@@ -1,6 +1,3 @@
-ALTER TABLE IF EXISTS pages
-ADD COLUMN IF NOT EXISTS unpublished_at TIMESTAMPTZ;
-
 UPDATE pages
 SET unpublished_at = subquery.unpublish_date
 FROM (SELECT DISTINCT ON (id) id,
