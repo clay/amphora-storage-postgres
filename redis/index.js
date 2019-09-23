@@ -4,7 +4,8 @@ const bluebird = require('bluebird'),
   Redis = require('ioredis'),
   { REDIS_URL, REDIS_HASH } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
-  { notFoundError, logGenericError } = require('../services/errors');
+  { notFoundError, logGenericError } = require('../services/errors'),
+  { parseOrNot } = require('../services/utils');
 var log = require('../services/log').setup({ file: __filename });
 
 /**
@@ -50,7 +51,11 @@ function shouldProcess(key) {
 function put(key, value) {
   if (!shouldProcess(key)) return bluebird.resolve();
 
-  return module.exports.client.hsetAsync(REDIS_HASH, key, value);
+  const data = isUri(key)
+    ? parseOrNot(value).data || value
+    : value;
+
+  return module.exports.client.hsetAsync(REDIS_HASH, key, data);
 }
 
 /**
@@ -69,7 +74,7 @@ function get(key) {
 }
 
 /**
- * [batch description]
+ * Makes a batch operation to redis
  * @param  {[type]} ops
  * @return {[type]}
  */
@@ -84,8 +89,12 @@ function batch(ops) {
     let { key, value } = ops[i];
 
     if (shouldProcess(key)) {
+      const data = isUri(key)
+        ? parseOrNot(value).data || value
+        : value;
+
       batch.push(key);
-      batch.push(value);
+      batch.push(data);
     }
   }
 
