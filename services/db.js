@@ -44,7 +44,13 @@ function get(key, testCacheEnabled) {
         // Parse non-uri data to match Postgres
         return isUri(key) ? data : JSON.parse(data);
       })
-      .catch(() => postgres.get(key));
+      .catch(() => {
+        return postgres.get(key)
+          .then(data => {
+            return redis.put(key, JSON.stringify(data))
+              .then(() => data);
+          });
+      });
   }
 
   return postgres.get(key);
