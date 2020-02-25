@@ -55,14 +55,17 @@ describe('services/db', () => {
       });
     });
 
-    test('it does call Postgres client if Redis has the data', () => {
+    test('it calls Postgres client if Redis does not have the data, saves result to Redis', () => {
       redis.get.mockResolvedValue(Promise.reject());
+      postgres.get.mockResolvedValue(Promise.resolve(VALUE));
+      redis.put.mockResolvedValue(Promise.resolve());
 
       return get(KEY, true).then(() => {
         expect(redis.get.mock.calls.length).toBe(1);
         expect(postgres.get.mock.calls.length).toBe(1);
         expect(redis.get).toHaveBeenCalledWith(KEY);
         expect(postgres.get).toHaveBeenCalledWith(KEY);
+        expect(redis.put).toHaveBeenCalledWith(KEY, JSON.stringify(VALUE));
       });
     });
   });
