@@ -48,7 +48,8 @@ function get(key, testCacheEnabled) {
         return postgres.get(key)
           .then(data => {
             return redis.put(key, JSON.stringify(data))
-              .then(() => data);
+              .then(() => data)
+              .catch(() => data);
           });
       });
   }

@@ -68,6 +68,20 @@ describe('services/db', () => {
         expect(redis.put).toHaveBeenCalledWith(KEY, JSON.stringify(VALUE));
       });
     });
+
+    test('it calls Postgres client if Redis does not have the data, still returns on PUT error', () => {
+      redis.get.mockResolvedValue(Promise.reject());
+      postgres.get.mockResolvedValue(Promise.resolve(VALUE));
+      redis.put.mockResolvedValue(Promise.reject());
+
+      return get(KEY, true).then(() => {
+        expect(redis.get.mock.calls.length).toBe(1);
+        expect(postgres.get.mock.calls.length).toBe(1);
+        expect(redis.get).toHaveBeenCalledWith(KEY);
+        expect(postgres.get).toHaveBeenCalledWith(KEY);
+        expect(redis.put).toHaveBeenCalledWith(KEY, JSON.stringify(VALUE));
+      });
+    });
   });
 
   describe('put', () => {
