@@ -19,10 +19,10 @@ var { createClient, get, put, batch, del, stubClient } = require('./index'),
   ],
   CLIENT = {
     on: jest.fn(),
-    hmsetAsync: jest.fn(),
-    hsetAsync: jest.fn(),
-    hdelAsync: jest.fn(),
-    hgetAsync: jest.fn()
+    msetAsync: jest.fn(),
+    setAsync: jest.fn(),
+    delAsync: jest.fn(),
+    getAsync: jest.fn()
   };
 
 beforeEach(() => {
@@ -41,9 +41,9 @@ describe('redis', () => {
   ])
   ('put', (val, key, data, resolution) => {
     test(`does ${resolution ? '' : 'not '}put ${val} to Redis`, () => {
-      CLIENT.hsetAsync.mockResolvedValue('');
+      CLIENT.setAsync.mockResolvedValue('');
       return put(key, data)
-        .then(() => expect(CLIENT.hsetAsync.mock.calls.length).toBe(resolution));
+        .then(() => expect(CLIENT.setAsync.mock.calls.length).toBe(resolution));
     });
   });
 
@@ -58,9 +58,9 @@ describe('redis', () => {
   ])
   ('del', (val, key, resolution) => {
     test(`does ${resolution ? '' : 'not '}del ${val} from Redis`, () => {
-      CLIENT.hdelAsync.mockResolvedValue('');
+      CLIENT.delAsync.mockResolvedValue('');
       return del(key)
-        .then(() => expect(CLIENT.hdelAsync.mock.calls.length).toBe(resolution));
+        .then(() => expect(CLIENT.delAsync.mock.calls.length).toBe(resolution));
     });
   });
 
@@ -75,18 +75,18 @@ describe('redis', () => {
     });
 
     test('retrieves data from Redis', () => {
-      CLIENT.hgetAsync.mockResolvedValue(JSON.stringify(FAKE_DATA));
+      CLIENT.getAsync.mockResolvedValue(JSON.stringify(FAKE_DATA));
       return get('somekey')
         .then(() => {
-          expect(CLIENT.hgetAsync.mock.calls.length).toBe(1);
+          expect(CLIENT.getAsync.mock.calls.length).toBe(1);
         });
     });
 
     test('rejects with a NotFoundError if the key does not exist', () => {
-      CLIENT.hgetAsync.mockResolvedValue(undefined);
+      CLIENT.getAsync.mockResolvedValue(undefined);
       return get('somekey')
         .catch((err) => {
-          expect(CLIENT.hgetAsync.mock.calls.length).toBe(1);
+          expect(CLIENT.getAsync.mock.calls.length).toBe(1);
           expect(err.name).toEqual('NotFoundError');
         });
     });
@@ -94,32 +94,32 @@ describe('redis', () => {
 
   describe('batch', () => {
     test('processes a batch of operations and writes them', () => {
-      CLIENT.hmsetAsync.mockResolvedValue('');
+      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch(FAKE_OPS)
         .then(() => {
-          expect(CLIENT.hmsetAsync.mock.calls.length).toBe(1);
+          expect(CLIENT.msetAsync.mock.calls.length).toBe(1);
         });
     });
 
     test('resolves quickly if the ops length is zero', () => {
-      CLIENT.hmsetAsync.mockResolvedValue('');
+      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch([])
         .then(() => {
-          expect(CLIENT.hmsetAsync.mock.calls.length).toBe(0);
+          expect(CLIENT.msetAsync.mock.calls.length).toBe(0);
         });
     });
 
     test('resolves if no ops pass the filter', () => {
-      CLIENT.hmsetAsync.mockResolvedValue('');
+      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch([{
         key: 'foo.com/_components/bar',
         value: '{"foo": true}'
       }])
         .then(() => {
-          expect(CLIENT.hmsetAsync.mock.calls.length).toBe(0);
+          expect(CLIENT.msetAsync.mock.calls.length).toBe(0);
         });
     });
   });

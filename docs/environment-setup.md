@@ -8,7 +8,6 @@ To define where Postgres and Redis clients will connect to you can define the fo
 - [`CLAY_STORAGE_POSTGRES_PORT`](#clay_storage_postgres_port)
 - [`CLAY_STORAGE_POSTGRES_DB`](#clay_storage_postgres_db)
 - [`CLAY_STORAGE_POSTGRES_CACHE_ENABLED`](#clay_storage_postgres_cache_enabled)
-- [`CLAY_STORAGE_POSTGRES_CACHE_HASH`](#clay_storage_postgres_cache_hash)
 - [`CLAY_STORAGE_POSTGRES_CACHE_HOST`](#clay_storage_postgres_cache_host)
 
 ---
@@ -55,12 +54,6 @@ The following values pertain to the configuration of the Redis cashing layer wit
 **Default:** `false` _(Boolean)_
 
 If set to `true` the module will leverage Redis as a cache for published data, uris, and user data to enable faster rendering of reader facing pages.
-
-### `CLAY_STORAGE_POSTGRES_CACHE_HASH`
-
-**Default:** `clay` _(String)_
-
-The hash within Redis that values will be stored in.
 
 ### `CLAY_STORAGE_POSTGRES_CACHE_HOST`
 

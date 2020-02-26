@@ -13,7 +13,6 @@ module.exports.CONNECTION_POOL_MAX = parseInt(process.env.CLAY_STORAGE_CONNECTIO
 
 // Redis
 module.exports.CACHE_ENABLED     = process.env.CLAY_STORAGE_POSTGRES_CACHE_ENABLED     || false;
-module.exports.REDIS_HASH        = process.env.CLAY_STORAGE_POSTGRES_CACHE_HASH        || 'clay';
 module.exports.REDIS_URL         = process.env.CLAY_STORAGE_POSTGRES_CACHE_HOST;
 
 // Application code
