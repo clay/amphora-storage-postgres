@@ -47,7 +47,7 @@ function get(key, testCacheEnabled) {
       .catch(() => {
         return postgres.get(key)
           .then(data => {
-            return redis.put(key, JSON.stringify(data))
+            return redis.put(key, isUri(key) ? data : JSON.stringify(data))
               .then(() => data)
               .catch(() => data);
           });

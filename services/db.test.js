@@ -55,6 +55,21 @@ describe('services/db', () => {
       });
     });
 
+    test('it does not encode uri string as json in Redis on GET', () => {
+      const uri = 'foo.com/_uris/bar',
+        page = 'foo.com/_pages/bar';
+
+      redis.get.mockResolvedValue(Promise.reject());
+      postgres.get.mockResolvedValue(Promise.resolve(page));
+      redis.put.mockResolvedValue(Promise.resolve());
+
+      return get(uri, true).then(() => {
+        expect(redis.get.mock.calls.length).toBe(1);
+        expect(redis.put).toHaveBeenCalledWith(uri, page);
+      });
+    });
+
+
     test('it calls Postgres client if Redis does not have the data, saves result to Redis', () => {
       redis.get.mockResolvedValue(Promise.reject());
       postgres.get.mockResolvedValue(Promise.resolve(VALUE));
