@@ -60,6 +60,7 @@ function setup(testPostgresHost) {
 
   return client.connect()
     .then(() => {
+      log('info', 'Starting migration');
       return migrate(
         {
           database: POSTGRES_DB,
@@ -76,7 +77,6 @@ function setup(testPostgresHost) {
     })
     .then(() => createTables())
     .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }))
-    .catch(logGenericError);
 }
 
 module.exports.setup = setup;
