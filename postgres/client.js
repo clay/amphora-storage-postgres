@@ -19,6 +19,7 @@ var knex, log = require('../services/log').setup({ file: __filename });
  * @returns {Promise}
  */
 function createDBIfNotExists() {
+  log('info', `Creating database ${POSTGRES_DB} because it did not exist.`);
   const tmpClient = knexLib({
     client: 'pg',
     connection: {
@@ -46,7 +47,7 @@ function createDBIfNotExists() {
  * @returns {Promise}
  */
 function connect() {
-  log('debug', `Connecting to Postgres at ${POSTGRES_HOST}:${POSTGRES_PORT}`);
+  log('info', `Connecting to Postgres at ${POSTGRES_HOST}:${POSTGRES_PORT}`);
 
   knex = knexLib({
     client: 'pg',
@@ -291,6 +292,7 @@ function putMeta(key, value) {
  * @returns {Promise}
  */
 function createTable(table) {
+  log('info', `Attempting to create table ${table}.`);
   return raw('CREATE TABLE IF NOT EXISTS ?? ( id TEXT PRIMARY KEY NOT NULL, data JSONB );', [table]);
 }
 
@@ -304,6 +306,7 @@ function createTable(table) {
  * @returns {Promise}
  */
 function createTableWithMeta(table) {
+  log('info', `Attempting to create table ${table} with meta.`);
   return raw('CREATE TABLE IF NOT EXISTS ?? ( id TEXT PRIMARY KEY NOT NULL, data JSONB, meta JSONB );', [table]);
 }
 
@@ -315,6 +318,7 @@ function createTableWithMeta(table) {
  * @returns {Promise}
  */
 function createSchema(name) {
+  log('info', `Attempting to create schema ${name}.`);
   return raw('CREATE SCHEMA IF NOT EXISTS ??;', [name]);
 }
 

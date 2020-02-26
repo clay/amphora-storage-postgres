@@ -12,6 +12,7 @@ var log = require('./log').setup({ file: __filename });
  */
 function logConnectionSuccess(name, resp) {
   log('info', `Connected to ${name} successfully at ${resp.server}`, resp);
+  log('info', `Resp Object: ${resp}`, resp);
 }
 
 /**
