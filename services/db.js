@@ -1,6 +1,7 @@
 'use strict';
 
 var redis = require('../redis'),
+  log = require('./log').setup({ file: __filename }),
   postgres = require('../postgres/client'),
   { isUri } = require('clayutils'),
   { CACHE_ENABLED } = require('./constants');
@@ -49,7 +50,10 @@ function get(key, testCacheEnabled) {
           .then(data => {
             return redis.put(key, isUri(key) ? data : JSON.stringify(data))
               .then(() => data)
-              .catch(() => data);
+              .catch(() => {
+                log('warn', `Failed to set Redis key ${key} after fetch from Postgres`);
+                return data;
+              });
           });
       });
   }
