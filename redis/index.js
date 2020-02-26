@@ -2,7 +2,7 @@
 
 const bluebird = require('bluebird'),
   Redis = require('ioredis'),
-  { REDIS_URL } = require('../services/constants'),
+  { REDIS_URL, REDIS_TTL } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
   { notFoundError, logGenericError } = require('../services/errors');
 var log = require('../services/log').setup({ file: __filename });
@@ -50,7 +50,7 @@ function shouldProcess(key) {
 function put(key, value) {
   if (!shouldProcess(key)) return bluebird.resolve();
 
-  return module.exports.client.setAsync(key, value);
+  return module.exports.client.setexAsync(key, REDIS_TTL, value);
 }
 
 /**
@@ -74,7 +74,8 @@ function get(key) {
  * @return {[type]}
  */
 function batch(ops) {
-  var batch = [];
+  const batch = [],
+    expire = [];
 
   if (!ops.length) {
     return bluebird.resolve();
@@ -86,6 +87,7 @@ function batch(ops) {
     if (shouldProcess(key)) {
       batch.push(key);
       batch.push(value);
+      expire.push(['expire', key, REDIS_TTL]);
     }
   }
 
@@ -93,7 +95,7 @@ function batch(ops) {
     return bluebird.resolve();
   }
 
-  return module.exports.client.msetAsync(batch);
+  return module.exports.client.pipeline([['mset'].concat(batch)].concat(expire)).exec();
 }
 
 /**
