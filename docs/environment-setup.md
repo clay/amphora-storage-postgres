@@ -60,3 +60,9 @@ If set to `true` the module will leverage Redis as a cache for published data, u
 **Default:** `redis://localhost:6379` _(String)_
 
 The Redis host to connect to. Should be [Redis Protocol](https://redis.io/topics/protocol) and include the port.
+
+### `CLAY_STORAGE_POSTGRES_CACHE_TTL`
+
+**Default:** `86400` _(Number)_
+
+This determines how long items will remain in the query cache (in seconds). The default is 24 hours.
