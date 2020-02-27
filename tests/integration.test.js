@@ -65,23 +65,26 @@ describe('integration tests', () => {
       keys = [
         testcase.published ? '/_pages/foo/a@published' : '/_pages/foo/a',
         testcase.published ? '/_pages/foo/b@published' : '/_pages/foo/b',
-        testcase.published ? '/_pages/foo/c@published' : '/_pages/foo/c'
+        testcase.published ? '/_pages/foo/c@published' : '/_pages/foo/c',
+        testcase.published ? '/_uris/foo@published' : '/_uris/foo'
       ],
       vals = [
         { test: true },
         { test: false },
-        { test: [1 ,2 ,3] }
+        { test: [1 ,2 ,3] },
+        'example.com/foo'
       ],
       batch = keys.map((k, i) => ({ key: k, value: vals[i] }));
     await db.setup(testcase.cache);
     await expect(db.batch(batch, testcase.cache)).resolves.toEqual(vals);
 
     for (let i = 0; i < batch.length; i++) {
-      let key = batch[i].key, val = batch[i].value;
+      let key = batch[i].key, val = batch[i].value,
+        expectStr = typeof val === 'string';  // used to test that strings are not re-encoded.
 
       await expect(db.get(key, testcase.cache)).resolves.toEqual(val);
-      if (testcase.cache && testcase.published) {
-        await expect(redis.get(key)).resolves.toEqual(JSON.stringify(val));
+      if (testcase.cache && (testcase.published || expectStr)) {
+        await expect(redis.get(key)).resolves.toEqual(expectStr ? val : JSON.stringify(val));
       } else {
         await expect(redis.get(key)).rejects.toThrow();
       }
