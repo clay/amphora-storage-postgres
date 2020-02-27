@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "eslint": "eslint --max-warnings 0 postgres redis services",
-    "jest": "jest",
+    "integration": "./tests/integration.sh",
+    "integration-ci": "npx jest --forceExit --runInBand tests/integration.test.js",
+    "jest": "jest --testPathIgnorePatterns tests/*",
     "test": "npm run eslint && npm run jest"
   },
   "repository": {

@@ -76,7 +76,7 @@ function setup(testPostgresHost) {
     })
     .then(() => createTables())
     .then(() => ({ server: `${postgresHost}:${POSTGRES_PORT}` }))
-    .catch(logGenericError);
+    .catch(logGenericError(__filename));
 }
 
 module.exports.setup = setup;

@@ -1,38 +1,39 @@
+---
 version: 2
 
-# Set defaults to reuse
-defaults: &defaults
-  working_directory: ~/repo
-  docker:
-    - image: circleci/node:8.9.1
+templates:
+  cache: &cache
+    key: v1-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
 
 jobs:
   test:
-    <<: *defaults
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8
+      - image: redis
+      - image: postgres
+        environment:
+          POSTGRES_HOST_AUTH_METHOD: trust
     steps:
       - checkout
-
+      - setup_remote_docker
       - restore_cache:
-          keys:
-          - v1-dependencies-
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
+          <<: *cache
       - run: npm install
-      - run:
-          name: Run tests
-          command: npm test
-
+      - run: npm test
+      - run: npm run integration-ci
       - save_cache:
+          <<: *cache
           paths:
             - node_modules
-          key: v1-dependencies-
-
       - persist_to_workspace:
           root: ~/repo
           paths: .
+
   deploy:
-    <<: *defaults
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8
     steps:
       - attach_workspace:
           at: ~/repo
