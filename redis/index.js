@@ -2,7 +2,7 @@
 
 const bluebird = require('bluebird'),
   Redis = require('ioredis'),
-  { REDIS_URL, REDIS_HASH } = require('../services/constants'),
+  { REDIS_URL } = require('../services/constants'),
   { isPublished, isUri, isUser } = require('clayutils'),
   { notFoundError, logGenericError } = require('../services/errors');
 var log = require('../services/log').setup({ file: __filename });
@@ -50,7 +50,7 @@ function shouldProcess(key) {
 function put(key, value) {
   if (!shouldProcess(key)) return bluebird.resolve();
 
-  return module.exports.client.hsetAsync(REDIS_HASH, key, value);
+  return module.exports.client.setAsync(key, value);
 }
 
 /**
@@ -64,7 +64,7 @@ function get(key) {
     return bluebird.reject(notFoundError(key));
   }
 
-  return module.exports.client.hgetAsync(REDIS_HASH, key)
+  return module.exports.client.getAsync(key)
     .then(data => data || bluebird.reject(notFoundError(key)));
 }
 
@@ -93,7 +93,7 @@ function batch(ops) {
     return bluebird.resolve();
   }
 
-  return module.exports.client.hmsetAsync(REDIS_HASH, batch);
+  return module.exports.client.msetAsync(batch);
 }
 
 /**
@@ -104,7 +104,7 @@ function batch(ops) {
 function del(key) {
   if (!shouldProcess(key) || !module.exports.client) return bluebird.resolve();
 
-  return module.exports.client.hdelAsync(REDIS_HASH, key);
+  return module.exports.client.delAsync(key);
 }
 
 module.exports.client = null;
