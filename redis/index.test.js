@@ -20,12 +20,18 @@ var { createClient, get, put, batch, del, stubClient } = require('./index'),
   CLIENT = {
     on: jest.fn(),
     msetAsync: jest.fn(),
+    pipeline: jest.fn(),
     setAsync: jest.fn(),
+    setexAsync: jest.fn(),
     delAsync: jest.fn(),
     getAsync: jest.fn()
   };
 
 beforeEach(() => {
+  var pipelineExec = jest.fn();
+
+  pipelineExec.mockResolvedValue('');
+  CLIENT.pipeline.mockReturnValue({ exec: pipelineExec });
   stubClient(CLIENT);
 });
 
@@ -41,9 +47,9 @@ describe('redis', () => {
   ])
   ('put', (val, key, data, resolution) => {
     test(`does ${resolution ? '' : 'not '}put ${val} to Redis`, () => {
-      CLIENT.setAsync.mockResolvedValue('');
+      CLIENT.setexAsync.mockResolvedValue('');
       return put(key, data)
-        .then(() => expect(CLIENT.setAsync.mock.calls.length).toBe(resolution));
+        .then(() => expect(CLIENT.setexAsync.mock.calls.length).toBe(resolution));
     });
   });
 
@@ -94,32 +100,29 @@ describe('redis', () => {
 
   describe('batch', () => {
     test('processes a batch of operations and writes them', () => {
-      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch(FAKE_OPS)
         .then(() => {
-          expect(CLIENT.msetAsync.mock.calls.length).toBe(1);
+          expect(CLIENT.pipeline.mock.calls.length).toBe(1);
         });
     });
 
     test('resolves quickly if the ops length is zero', () => {
-      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch([])
         .then(() => {
-          expect(CLIENT.msetAsync.mock.calls.length).toBe(0);
+          expect(CLIENT.pipeline.mock.calls.length).toBe(0);
         });
     });
 
     test('resolves if no ops pass the filter', () => {
-      CLIENT.msetAsync.mockResolvedValue('');
 
       return batch([{
         key: 'foo.com/_components/bar',
         value: '{"foo": true}'
       }])
         .then(() => {
-          expect(CLIENT.msetAsync.mock.calls.length).toBe(0);
+          expect(CLIENT.pipeline.mock.calls.length).toBe(0);
         });
     });
   });

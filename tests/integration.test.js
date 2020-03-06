@@ -48,6 +48,7 @@ describe('integration tests', () => {
     // the implementation of each of the specific classes via conditionals.
     if (testcase.cache && testcase.published) {
       await expect(redis.get(key)).resolves.toEqual(JSON.stringify(val));
+      await expect(redis.client.ttl(key)).resolves.toBeGreaterThan(-1);
     } else {
       await expect(redis.get(key)).rejects.toThrow();
     }
@@ -85,6 +86,7 @@ describe('integration tests', () => {
       await expect(db.get(key, testcase.cache)).resolves.toEqual(val);
       if (testcase.cache && (testcase.published || expectStr)) {
         await expect(redis.get(key)).resolves.toEqual(expectStr ? val : JSON.stringify(val));
+        await expect(redis.client.ttl(key)).resolves.toBeGreaterThan(-1);
       } else {
         await expect(redis.get(key)).rejects.toThrow();
       }

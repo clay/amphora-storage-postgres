@@ -14,6 +14,9 @@ module.exports.CONNECTION_POOL_MAX = parseInt(process.env.CLAY_STORAGE_CONNECTIO
 // Redis
 module.exports.CACHE_ENABLED     = process.env.CLAY_STORAGE_POSTGRES_CACHE_ENABLED     || false;
 module.exports.REDIS_URL         = process.env.CLAY_STORAGE_POSTGRES_CACHE_HOST;
+module.exports.REDIS_TTL = process.env.CLAY_STORAGE_POSTGRES_CACHE_TTL
+  ? Number(process.env.CLAY_STORAGE_POSTGRES_CACHE_TTL)
+  : 60 * 60 * 24;  // One day.
 
 // Application code
 module.exports.DATA_STRUCTURES   = ['components', 'layouts', 'pages', 'uris', 'lists', 'users'];
