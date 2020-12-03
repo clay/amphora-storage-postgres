@@ -9,6 +9,7 @@ To define where Postgres and Redis clients will connect to you can define the fo
 - [`CLAY_STORAGE_POSTGRES_DB`](#clay_storage_postgres_db)
 - [`CLAY_STORAGE_POSTGRES_CACHE_ENABLED`](#clay_storage_postgres_cache_enabled)
 - [`CLAY_STORAGE_POSTGRES_CACHE_HOST`](#clay_storage_postgres_cache_host)
+- [`CLAY_STORAGE_POSTGRES_PAGE_SIZE`](#clay_storage_postgres_page_size)
 
 ---
 ## Postgres
@@ -42,6 +43,12 @@ The port where your Postgres instance resides on its host.
 **Default:** `clay` _(String)_
 
 The database within Postgres to connect to.
+
+### `CLAY_STORAGE_PAGE_SIZE`
+
+**Default:** `null` _(Number)_
+
+Default page size for list queries. Enables pagination by default on list endpoints.  
 
 ---
 
