@@ -1,6 +1,15 @@
 'use strict';
 
-const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, CONNECTION_POOL_MIN, CONNECTION_POOL_MAX } = require('../services/constants'),
+const {
+    POSTGRES_USER,
+    POSTGRES_PASSWORD,
+    POSTGRES_HOST,
+    POSTGRES_PORT,
+    POSTGRES_DB,
+    CONNECTION_POOL_MIN,
+    CONNECTION_POOL_MAX,
+    PAGE_SIZE,
+  } = require('../services/constants'),
   { notFoundError } = require('../services/errors'),
   { parseOrNot, wrapInObject, decode } = require('../services/utils'),
   { findSchemaAndTable, wrapJSONStringInObject } = require('../services/utils'),
@@ -8,7 +17,8 @@ const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES
   { isList, isUri } = require('clayutils'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
-var knex, log = require('../services/log').setup({ file: __filename });
+var knex,
+  log = require('../services/log').setup({ file: __filename });
 
 /**
  * Connect to the default DB and create the Clay
@@ -252,6 +262,36 @@ function createReadStream(options) {
 
   return transform;
 }
+/**
+ * Gets a list of components as a readable stream, can handle pagination. 
+ * @param {Object} options 
+ */
+function paginate(options) {
+  const { prefix, values, keys, previous, size } = options;
+  const transform = TransformStream(options);
+  const selects = [];
+  const pageSize = size || PAGE_SIZE; // TODO add range, other checks
+
+  if (keys) selects.push('id');
+  if (values) selects.push('data');
+
+  const query = baseQuery(prefix)
+    .select(...selects)
+    .where('id', 'like', `${prefix}%`); // site
+
+  if (previous) {
+    query.where('id', '>', previous); // TODO validation of previous id
+  }
+
+  if (pageSize) {
+    query.limit(pageSize);
+    query.orderBy('id', 'asc');
+  }
+
+  query.pipe(transform);
+
+  return transform;
+}
 
 /**
  * [putMeta description]
@@ -342,6 +382,7 @@ module.exports.getMeta = getMeta;
 module.exports.putMeta = putMeta;
 module.exports.patchMeta = META_PUT_PATCH_FN;
 module.exports.createReadStream = createReadStream;
+module.exports.paginate = paginate;
 
 // Knex methods
 module.exports.createSchema = createSchema;
