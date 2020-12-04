@@ -275,9 +275,10 @@ function paginate(options) {
   if (keys) selects.push('id');
   if (values) selects.push('data');
 
-  const query = baseQuery(prefix)
-    .select(...selects)
-    .where('id', 'like', `${prefix}%`); // site
+  const query = baseQuery(prefix);
+
+  query.select(...selects);
+  query.where('id', 'like', `${prefix}%`); // site
 
   if (previous) {
     query.where('id', '>', previous); // TODO validation of previous id
