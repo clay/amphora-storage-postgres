@@ -488,6 +488,100 @@ describe('postgres/client', () => {
     });
   });
 
+  describe.only('paginate', () => {
+    const pipe = jest.fn(() => ({})),
+      where = jest.fn(() => ({})),
+      select = jest.fn(() => ({})),
+      withSchema = jest.fn(() => ({})),
+      limit = jest.fn(() => ({})),
+      orderBy = jest.fn(() => ({})),
+      knex = jest.fn(() => ({
+        withSchema,
+        select,
+        where,
+        limit,
+        orderBy,
+        pipe,
+      })),
+      mockedTransform = {};
+
+    beforeEach(() => {
+      client.setClient(knex);
+    });
+
+    test('creates a read stream of query results with id and data columns', () => {
+      TransformStream.mockReturnValueOnce(mockedTransform);
+
+      const options = {
+          prefix: 'nymag.com/_uris',
+          values: true,
+          keys: true,
+        },
+        transform = client.paginate(options);
+
+      expect(withSchema.mock.calls.length).toBe(0);
+      expect(select.mock.calls.length).toBe(1);
+      expect(select.mock.calls[0][0]).toBe('id');
+      expect(select.mock.calls[0][1]).toBe('data');
+      expect(where.mock.calls.length).toBe(1);
+      expect(where.mock.calls[0][1]).toBe('like');
+      expect(where.mock.calls[0][2]).toBe(`${options.prefix}%`);
+      expect(transform).toBe(mockedTransform);
+    });
+
+    test('creates a read stream of query results without id and data columns', () => {
+      TransformStream.mockReturnValueOnce(mockedTransform);
+
+      const options = {
+          prefix: 'nymag.com/_uris',
+          values: false,
+          keys: false,
+        },
+        transform = client.paginate(options);
+
+      expect(withSchema.mock.calls.length).toBe(0);
+      expect(select.mock.calls.length).toBe(1);
+      expect(select.mock.calls[0][0]).toBe(undefined);
+      expect(where.mock.calls.length).toBe(1);
+      expect(where.mock.calls[0][1]).toBe('like');
+      expect(where.mock.calls[0][2]).toBe(`${options.prefix}%`);
+      expect(transform).toBe(mockedTransform);
+    });
+
+    test('queries with a limit and order when page size is set', () => {
+      TransformStream.mockReturnValueOnce(mockedTransform);
+
+      const options = {
+        prefix: 'nymag.com/_uris',
+        values: false,
+        keys: false,
+        size: 20,
+      };
+
+      client.paginate(options);
+
+      expect(limit.mock.calls[0][0]).toBe(20);
+      expect(orderBy.mock.calls.length).toBe(1);
+      expect(orderBy.mock.calls[0]).toEqual(['id', 'asc']);
+    });
+
+    test('queries with where id > previous when previous is set', () => {
+      const options = {
+        prefix: 'nymag.com/_uris',
+        values: false,
+        keys: false,
+        size: 20,
+        previous: 'nymag.com/components/ad/instances/aaa',
+      };
+
+      client.paginate(options);
+
+      expect(where.mock.calls[1]).toEqual(['id', '>', options.previous]);
+      expect(orderBy.mock.calls.length).toBe(1);
+      expect(orderBy.mock.calls[0]).toEqual(['id', 'asc']);
+    });
+  });
+
   describe('put', () => {
     const update = jest.fn(() => 'update sql'),
       insert = jest.fn(() => 'insert sql'),
