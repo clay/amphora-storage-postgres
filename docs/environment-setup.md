@@ -9,7 +9,7 @@ To define where Postgres and Redis clients will connect to you can define the fo
 - [`CLAY_STORAGE_POSTGRES_DB`](#clay_storage_postgres_db)
 - [`CLAY_STORAGE_POSTGRES_CACHE_ENABLED`](#clay_storage_postgres_cache_enabled)
 - [`CLAY_STORAGE_POSTGRES_CACHE_HOST`](#clay_storage_postgres_cache_host)
-- [`CLAY_STORAGE_POSTGRES_PAGE_SIZE`](#clay_storage_postgres_page_size)
+- [`CLAY_STORAGE_PAGE_SIZE`](#clay_storage_page_size)
 
 ---
 ## Postgres
