@@ -262,9 +262,11 @@ function createReadStream(options) {
 
   return transform;
 }
+
 /**
- * Gets a list of components as a readable stream, can handle pagination. 
- * @param {Object} options 
+ * Gets a list of components as a readable stream, can handle pagination.
+ * @param {Object} options
+ * @returns {Stream}
  */
 function paginate(options) {
   const { prefix, values, keys, previous, size } = options;
