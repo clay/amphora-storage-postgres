@@ -272,7 +272,7 @@ function paginate(options) {
   const { prefix, values, keys, previous, size } = options;
   const transform = TransformStream(options);
   const selects = [];
-  const pageSize = size || PAGE_SIZE; // TODO add range, other checks
+  const pageSize = size || PAGE_SIZE;
 
   if (keys) selects.push('id');
   if (values) selects.push('data');
@@ -280,10 +280,10 @@ function paginate(options) {
   const query = baseQuery(prefix);
 
   query.select(...selects);
-  query.where('id', 'like', `${prefix}%`); // site
+  query.where('id', 'like', `${prefix}%`);
 
   if (previous) {
-    query.where('id', '>', previous); // TODO validation of previous id
+    query.where('id', '>', previous);
   }
 
   if (pageSize) {
