@@ -48,7 +48,7 @@ The database within Postgres to connect to.
 
 **Default:** `null` _(Number)_
 
-Default page size for list queries. Enables pagination by default on list endpoints.  
+Default page size for list queries. Enables pagination by default on list endpoints. Setting a page size of `0` will disable pagination.
 
 ---
 
