@@ -433,62 +433,7 @@ describe('postgres/client', () => {
     });
   });
 
-  describe('createReadStream', () => {
-    const pipe = jest.fn(() => ({})),
-      where = jest.fn(() => ({ pipe })),
-      select = jest.fn(() => ({ where })),
-      withSchema = jest.fn(() => ({ select })),
-      knex = jest.fn(() => ({
-        withSchema,
-        select
-      })),
-      mockedTransform = {};
-
-    beforeEach(() => {
-      client.setClient(knex);
-    });
-
-    test('creates a read stream of query results with id and data columns', () => {
-      TransformStream.mockReturnValueOnce(mockedTransform);
-
-      const options = {
-          prefix: 'nymag.com/_uris',
-          values: true,
-          keys: true
-        },
-        transform = client.createReadStream(options);
-
-      expect(withSchema.mock.calls.length).toBe(0);
-      expect(select.mock.calls.length).toBe(1);
-      expect(select.mock.calls[0][0]).toBe('id');
-      expect(select.mock.calls[0][1]).toBe('data');
-      expect(where.mock.calls.length).toBe(1);
-      expect(where.mock.calls[0][1]).toBe('like');
-      expect(where.mock.calls[0][2]).toBe(`${options.prefix}%`);
-      expect(transform).toBe(mockedTransform);
-    });
-
-    test('creates a read stream of query results without id and data columns', () => {
-      TransformStream.mockReturnValueOnce(mockedTransform);
-
-      const options = {
-          prefix: 'nymag.com/_uris',
-          values: false,
-          keys: false
-        },
-        transform = client.createReadStream(options);
-
-      expect(withSchema.mock.calls.length).toBe(0);
-      expect(select.mock.calls.length).toBe(1);
-      expect(select.mock.calls[0][0]).toBe(undefined);
-      expect(where.mock.calls.length).toBe(1);
-      expect(where.mock.calls[0][1]).toBe('like');
-      expect(where.mock.calls[0][2]).toBe(`${options.prefix}%`);
-      expect(transform).toBe(mockedTransform);
-    });
-  });
-
-  describe.only('paginate', () => {
+  describe.only('createReadStream', () => {
     const pipe = jest.fn(() => ({})),
       where = jest.fn(() => ({})),
       select = jest.fn(() => ({})),
@@ -517,7 +462,7 @@ describe('postgres/client', () => {
           values: true,
           keys: true,
         },
-        transform = client.paginate(options);
+        transform = client.createReadStream(options);
 
       expect(withSchema.mock.calls.length).toBe(0);
       expect(select.mock.calls.length).toBe(1);
@@ -537,7 +482,7 @@ describe('postgres/client', () => {
           values: false,
           keys: false,
         },
-        transform = client.paginate(options);
+        transform = client.createReadStream(options);
 
       expect(withSchema.mock.calls.length).toBe(0);
       expect(select.mock.calls.length).toBe(1);
@@ -558,7 +503,7 @@ describe('postgres/client', () => {
         size: 20,
       };
 
-      client.paginate(options);
+      client.createReadStream(options);
 
       expect(limit.mock.calls[0][0]).toBe(20);
       expect(orderBy.mock.calls.length).toBe(1);
@@ -574,7 +519,7 @@ describe('postgres/client', () => {
         previous: 'nymag.com/components/ad/instances/aaa',
       };
 
-      client.paginate(options);
+      client.createReadStream(options);
 
       expect(where.mock.calls[1]).toEqual(['id', '>', options.previous]);
       expect(orderBy.mock.calls.length).toBe(1);
