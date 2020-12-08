@@ -361,7 +361,6 @@ module.exports.getMeta = getMeta;
 module.exports.putMeta = putMeta;
 module.exports.patchMeta = META_PUT_PATCH_FN;
 module.exports.createReadStream = createReadStream;
-module.exports.paginate = paginate;
 
 // Knex methods
 module.exports.createSchema = createSchema;

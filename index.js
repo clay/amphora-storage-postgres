@@ -12,4 +12,3 @@ module.exports.patchMeta = db.patchMeta;
 module.exports.getMeta = db.getMeta;
 module.exports.raw = db.raw;
 module.exports.createReadStream = db.createReadStream;
-module.exports.paginate = db.paginate;

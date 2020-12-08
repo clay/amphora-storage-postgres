@@ -101,4 +101,3 @@ module.exports.putMeta = postgres.putMeta;
 module.exports.getMeta = postgres.getMeta;
 module.exports.patchMeta = postgres.patchMeta;
 module.exports.createReadStream = postgres.createReadStream;
-module.exports.paginate = postgres.paginate;
