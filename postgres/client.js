@@ -241,38 +241,14 @@ function batch(ops) {
 }
 
 /**
- * Return a readable stream of query results
- * from the db
- *
- * @param  {Object} options
- * @return {Stream}
- */
-function createReadStream(options) {
-  const { prefix, values, keys } = options,
-    transform = TransformStream(options),
-    selects = [];
-
-  if (keys) selects.push('id');
-  if (values) selects.push('data');
-
-  baseQuery(prefix)
-    .select(...selects)
-    .where('id', 'like', `${prefix}%`)
-    .pipe(transform);
-
-  return transform;
-}
-
-/**
  * Gets a list of components as a readable stream, can handle pagination.
  * @param {Object} options
  * @returns {Stream}
  */
-function paginate(options) {
+function createReadStream(options) {
   const { prefix, values, keys, previous, size } = options;
   const transform = TransformStream(options);
   const selects = [];
-  const pageSize = size || PAGE_SIZE;
 
   if (keys) selects.push('id');
   if (values) selects.push('data');
@@ -286,8 +262,8 @@ function paginate(options) {
     query.where('id', '>', previous);
   }
 
-  if (pageSize) {
-    query.limit(pageSize);
+  if (size) {
+    query.limit(size);
     query.orderBy('id', 'asc');
   }
 
