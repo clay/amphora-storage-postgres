@@ -8,7 +8,6 @@ const {
     POSTGRES_DB,
     CONNECTION_POOL_MIN,
     CONNECTION_POOL_MAX,
-    PAGE_SIZE,
   } = require('../services/constants'),
   { notFoundError } = require('../services/errors'),
   { parseOrNot, wrapInObject, decode } = require('../services/utils'),

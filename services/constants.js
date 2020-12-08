@@ -11,8 +11,6 @@ module.exports.POSTGRES_DB       = process.env.CLAY_STORAGE_POSTGRES_DB       ||
 module.exports.CONNECTION_POOL_MIN = parseInt(process.env.CLAY_STORAGE_CONNECTION_POOL_MIN, 10) || 2;
 module.exports.CONNECTION_POOL_MAX = parseInt(process.env.CLAY_STORAGE_CONNECTION_POOL_MAX, 10) || 10;
 
-module.exports.PAGE_SIZE = parseInt(process.env.CLAY_STORAGE_PAGE_SIZE) || null;
-
 // Redis
 module.exports.CACHE_ENABLED     = process.env.CLAY_STORAGE_POSTGRES_CACHE_ENABLED     || false;
 module.exports.REDIS_URL         = process.env.CLAY_STORAGE_POSTGRES_CACHE_HOST;
