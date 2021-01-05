@@ -1,15 +1,33 @@
 ---
 version: 2
 
-templates:
-  cache: &cache
-    key: v1-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
+references:
+  filter_all: &filter_all
+    filters:
+      branches:
+        only: /.*/
+      tags:
+        only: /.*/
+
+  filter_head: &filter_head
+    filters:
+      branches:
+        only: master
+      tags:
+        only: stg
+
+  filter_release: &filter_release
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /v[0-9]+\.[0-9]+\.[0-9]+(-[0-9])?/
 
 jobs:
   test:
     working_directory: ~/repo
     docker:
-      - image: circleci/node:8
+      - image: circleci/node:12
       - image: redis
       - image: postgres
         environment:
@@ -18,42 +36,43 @@ jobs:
       - checkout
       - setup_remote_docker
       - restore_cache:
-          <<: *cache
+          key: v2-node12-dependencies-{{ checksum "package.json" }}
       - run: npm install
-      - run: npm test
-      - run: npm run integration-ci
       - save_cache:
-          <<: *cache
+          key: v2-node12-dependencies-{{ checksum "package.json" }}
           paths:
             - node_modules
-      - persist_to_workspace:
-          root: ~/repo
-          paths: .
+      - run: npm test
+      - run: npm run integration-ci
+      - run: |
+          if [[ "$CIRCLE_BRANCH" == "master" ]]; then
+            cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js
+          fi
 
-  deploy:
-    working_directory: ~/repo
+  deploy_package:
     docker:
-      - image: circleci/node:8
+      - image: circleci/node:12
+    working_directory: ~/repo
     steps:
-      - attach_workspace:
-          at: ~/repo
-      - run:
-          name: Send to Coveralls
-          command: cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js
+      - checkout
+      - run: |
+          echo "$NPMRC" > ~/.npmrc
+          chmod 600 ~/.npmrc
+          if [[ "$CIRCLE_TAG" = *-* ]]; then
+            npm publish --tag=prerelease
+          else
+            npm publish
+          fi
 
 workflows:
   version: 2
   test-deploy:
     jobs:
       - test:
-          filters:
-            tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
-      - deploy:
+          <<: *filter_all
+      - deploy_package:
+          <<: *filter_release
+          context:
+            - npm-publish
           requires:
             - test
-          filters:
-            tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
-            branches:
-              ignore: /.*/

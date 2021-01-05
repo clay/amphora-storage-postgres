@@ -8,7 +8,8 @@
     "integration": "./tests/integration.sh",
     "integration-ci": "npx jest --forceExit --runInBand tests/integration.test.js",
     "jest": "jest --testPathIgnorePatterns tests/*",
-    "test": "npm run eslint && npm run jest"
+    "test": "npm run eslint && npm run jest",
+    "release": "./.circleci/scripts/release.sh"
   },
   "repository": {
     "type": "git",
