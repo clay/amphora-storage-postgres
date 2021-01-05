@@ -433,7 +433,7 @@ describe('postgres/client', () => {
     });
   });
 
-  describe.only('createReadStream', () => {
+  describe('createReadStream', () => {
     const pipe = jest.fn(() => ({})),
       where = jest.fn(() => ({})),
       select = jest.fn(() => ({})),
