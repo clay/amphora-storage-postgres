@@ -37,7 +37,7 @@ function createDBIfNotExists() {
       database: 'postgres',
       port: POSTGRES_PORT
     },
-    pool: { min: CONNECTION_POOL_MIN, max: CONNECTION_POOL_MAX }, 
+    pool: { min: CONNECTION_POOL_MIN, max: CONNECTION_POOL_MAX },
     acquireConnectionTimeout: CONNECTION_TIMEOUT
   });
 
