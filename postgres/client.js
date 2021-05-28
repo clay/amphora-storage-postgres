@@ -14,7 +14,7 @@ const {
   { parseOrNot, wrapInObject, decode } = require('../services/utils'),
   { findSchemaAndTable, wrapJSONStringInObject } = require('../services/utils'),
   knexLib = require('knex'),
-  { isList, isUri } = require('clayutils'),
+  { isList, isUri, isPage } = require('clayutils'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
 var knex, log = require('../services/log').setup({ file: __filename });
@@ -282,14 +282,50 @@ function getMeta(key) {
  * @param {Object} value [description]
  * @return {Promise} [description]
  */
+/* eslint complexity: 0 */
 function putMeta(key, value) {
   const { schema, table } = findSchemaAndTable(key),
-    map = columnToValueMap('id', key);
+    map = columnToValueMap('id', key),
+    parsedValue = parseOrNot(value);
 
   // add meta column to map
-  columnToValueMap('meta', parseOrNot(value), map);
+  columnToValueMap('meta', parsedValue, map);
+
+  if (isPage(key)) {
+    // If value has first publish time, add it to the map
+    if (parsedValue.firstPublishTime)
+      columnToValueMap('published_at', parsedValue.firstPublishTime, map);
+
+    // If value has publish time, add it as republished date
+    if (parsedValue.publishTime)
+      columnToValueMap('republished_at', parsedValue.publishTime, map);
+
+    // If we have history data, then find the unpublish and archive events
+    if (parsedValue.history && parsedValue.history.length) {
+      const latestUnpublish = getLatestActionByName(parsedValue.history, 'unpublish'),
+        latestArchived = getLatestActionByName(parsedValue.history, 'archive');
+
+      if (latestUnpublish.timestamp)
+        columnToValueMap('unpublished_at', latestUnpublish.timestamp, map);
+
+      if (latestArchived.timestamp)
+        columnToValueMap('archived_at', latestArchived.timestamp, map);
+    }
+  }
 
   return onConflictPut(map, schema, table).then(() => map.meta);
+}
+
+/**
+ * Gets the latest entry in the history based on the action
+ * @param {Object[]} history
+ * @param {String} action
+ * @returns {Object}
+ */
+function getLatestActionByName(history, action) {
+  return history
+    .filter(event => event.action === action)
+    .pop() || {};
 }
 
 /**
