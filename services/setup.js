@@ -32,7 +32,13 @@ function setup(testCacheEnabled) {
   const promises = [],
     cacheEnabled = testCacheEnabled || CACHE_ENABLED;
 
-  promises.push(postgres.setup().then(resp => logConnectionSuccess('Postgres', resp)));
+  promises.push(
+    postgres.setup().then((resp) => {
+      log('info', JSON.stringify(resp));
+
+      return logConnectionSuccess('Postgres', resp);
+    })
+  );
 
   // only create redis client if caching is enabled
   if (cacheEnabled) {
