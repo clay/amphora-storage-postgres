@@ -25,6 +25,8 @@ function put(key, value, testCacheEnabled) {
       }
 
       return res;
+    }).catch(err => {
+      log('warn', JSON.stringify({key, value, err}));
     });
 }
 
@@ -78,6 +80,8 @@ function batch(ops, testCacheEnabled) {
       }
 
       return res;
+    }).catch(err => {
+      log('warn', JSON.stringify({ops, err}));
     });
 }
 
