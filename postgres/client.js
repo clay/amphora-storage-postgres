@@ -8,6 +8,7 @@ const {
     POSTGRES_DB,
     CONNECTION_POOL_MIN,
     CONNECTION_POOL_MAX,
+    CONNECTION_TIMEOUT,
   } = require('../services/constants'),
   { notFoundError } = require('../services/errors'),
   { parseOrNot, wrapInObject, decode } = require('../services/utils'),
@@ -37,7 +38,8 @@ function createDBIfNotExists() {
       database: 'postgres',
       port: POSTGRES_PORT
     },
-    pool: { min: CONNECTION_POOL_MIN, max: CONNECTION_POOL_MAX }
+    pool: { min: CONNECTION_POOL_MIN, max: CONNECTION_POOL_MAX },
+    acquireConnectionTimeout: CONNECTION_TIMEOUT
   });
 
   // https://github.com/clay/amphora-storage-postgres/pull/7/files/16d3429767943a593ad9667b0d471fefc15088d3#diff-6a1e11a6146d3a5a01f955a44a2ac07a
