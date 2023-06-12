@@ -17,7 +17,8 @@ const {
   { isList, isUri } = require('clayutils'),
   TransformStream = require('../services/list-transform-stream'),
   META_PUT_PATCH_FN = patch('meta');
-var knex, log = require('../services/log').setup({ file: __filename });
+var knex,
+  log = require('../services/log').setup({ file: __filename });
 
 /**
  * Connect to the default DB and create the Clay
@@ -241,24 +242,33 @@ function batch(ops) {
 }
 
 /**
- * Return a readable stream of query results
- * from the db
- *
- * @param  {Object} options
- * @return {Stream}
+ * Gets a list of components as a readable stream, can handle pagination.
+ * @param {Object} options
+ * @returns {Stream}
  */
 function createReadStream(options) {
-  const { prefix, values, keys } = options,
-    transform = TransformStream(options),
-    selects = [];
+  const { prefix, values, keys, previous, size } = options;
+  const transform = TransformStream(options);
+  const selects = [];
 
   if (keys) selects.push('id');
   if (values) selects.push('data');
 
-  baseQuery(prefix)
-    .select(...selects)
-    .where('id', 'like', `${prefix}%`)
-    .pipe(transform);
+  const query = baseQuery(prefix);
+
+  query.select(...selects);
+  query.where('id', 'like', `${prefix}%`);
+
+  if (previous) {
+    query.where('id', '>', previous);
+  }
+
+  if (size) {
+    query.limit(size);
+    query.orderBy('id', 'asc');
+  }
+
+  query.pipe(transform);
 
   return transform;
 }
