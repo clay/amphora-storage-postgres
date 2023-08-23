@@ -1,6 +1,6 @@
 {
   "name": "amphora-storage-postgres",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A storage module for Amphora that leverages Postgres and Redis",
   "main": "index.js",
   "scripts": {
