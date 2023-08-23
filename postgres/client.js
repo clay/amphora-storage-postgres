@@ -357,6 +357,7 @@ module.exports.createReadStream = createReadStream;
 module.exports.createSchema = createSchema;
 module.exports.createTable = createTable;
 module.exports.createTableWithMeta = createTableWithMeta;
+module.exports.getKnexInstance = () => knex;
 
 // Exposed for testing
 module.exports.pullValFromRows = pullValFromRows;
@@ -365,3 +366,4 @@ module.exports.baseQuery = baseQuery;
 module.exports.setClient = mock => knex = mock;
 module.exports.setLog = mock => log = mock;
 module.exports.onConflictPut = onConflictPut;
+
