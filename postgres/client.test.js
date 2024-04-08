@@ -435,12 +435,18 @@ describe('postgres/client', () => {
 
   describe('createReadStream', () => {
     const pipe = jest.fn(() => ({})),
-      where = jest.fn(() => ({ pipe })),
-      select = jest.fn(() => ({ where })),
-      withSchema = jest.fn(() => ({ select })),
+      where = jest.fn(() => ({})),
+      select = jest.fn(() => ({})),
+      withSchema = jest.fn(() => ({})),
+      limit = jest.fn(() => ({})),
+      orderBy = jest.fn(() => ({})),
       knex = jest.fn(() => ({
         withSchema,
-        select
+        select,
+        where,
+        limit,
+        orderBy,
+        pipe,
       })),
       mockedTransform = {};
 
@@ -454,7 +460,7 @@ describe('postgres/client', () => {
       const options = {
           prefix: 'nymag.com/_uris',
           values: true,
-          keys: true
+          keys: true,
         },
         transform = client.createReadStream(options);
 
@@ -474,7 +480,7 @@ describe('postgres/client', () => {
       const options = {
           prefix: 'nymag.com/_uris',
           values: false,
-          keys: false
+          keys: false,
         },
         transform = client.createReadStream(options);
 
@@ -485,6 +491,39 @@ describe('postgres/client', () => {
       expect(where.mock.calls[0][1]).toBe('like');
       expect(where.mock.calls[0][2]).toBe(`${options.prefix}%`);
       expect(transform).toBe(mockedTransform);
+    });
+
+    test('queries with a limit and order when page size is set', () => {
+      TransformStream.mockReturnValueOnce(mockedTransform);
+
+      const options = {
+        prefix: 'nymag.com/_uris',
+        values: false,
+        keys: false,
+        size: 20,
+      };
+
+      client.createReadStream(options);
+
+      expect(limit.mock.calls[0][0]).toBe(20);
+      expect(orderBy.mock.calls.length).toBe(1);
+      expect(orderBy.mock.calls[0]).toEqual(['id', 'asc']);
+    });
+
+    test('queries with where id > previous when previous is set', () => {
+      const options = {
+        prefix: 'nymag.com/_uris',
+        values: false,
+        keys: false,
+        size: 20,
+        previous: 'nymag.com/components/ad/instances/aaa',
+      };
+
+      client.createReadStream(options);
+
+      expect(where.mock.calls[1]).toEqual(['id', '>', options.previous]);
+      expect(orderBy.mock.calls.length).toBe(1);
+      expect(orderBy.mock.calls[0]).toEqual(['id', 'asc']);
     });
   });
 
