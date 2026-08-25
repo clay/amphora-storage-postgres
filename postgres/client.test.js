@@ -44,6 +44,13 @@ describe('postgres/client', () => {
         expect(knex.mock.calls.length).toBe(1);
         expect(table.mock.calls.length).toBe(1);
         expect(table.mock.calls[0][0]).toBe('information_schema.tables');
+
+        const config = knex.mock.calls[0][0];
+
+        expect(config.connection.keepAlive).toBe(true);
+        expect(config.connection.statement_timeout).toBe(300000);
+        expect(config.connection.query_timeout).toBe(330000);
+        expect(config.acquireConnectionTimeout).toBe(60000);
       });
     });
   });
